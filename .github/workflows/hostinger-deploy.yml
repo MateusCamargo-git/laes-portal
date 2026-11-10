@@ -1,0 +1,52 @@
+name: LAES - Validar publicacao Hostinger
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laes-hostinger-deploy
+  cancel-in-progress: false
+
+jobs:
+  validar-ftps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Compilar portal
+        run: npm run build
+
+      - name: Confirmar arquivos compilados
+        run: |
+          test -f dist/index.html
+          test -d dist/assets
+          if grep -q '/src/main.tsx' dist/index.html; then
+            echo 'ERRO: index.html ainda referencia TypeScript de desenvolvimento'
+            exit 1
+          fi
+
+      - name: Validar conexao FTPS (sem publicar)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: 185.245.180.243
+          username: u187912314
+          password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          security: strict
+          local-dir: ./dist/
+          server-dir: /public_html/
+          dry-run: true
+          dangerous-clean-slate: false
