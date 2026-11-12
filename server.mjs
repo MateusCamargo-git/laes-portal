@@ -11,7 +11,7 @@ let liveCache = { expires: 0, streams: [] };
 async function twitchLive() {
   const clientId = process.env.TWITCH_CLIENT_ID;
   const clientSecret = process.env.TWITCH_CLIENT_SECRET;
-  const channels = (process.env.TWITCH_CHANNELS || '').split(',').map(v => v.trim().toLowerCase()).filter(v => /^[a-z0-9_]{3,25}$/.test(v)).slice(0, 100);
+  const channels = (process.env.TWITCH_CHANNELS || 'joarezzzz').split(',').map(v => v.trim().toLowerCase()).filter(v => /^[a-z0-9_]{3,25}$/.test(v)).slice(0, 100);
   if (!clientId || !clientSecret || !channels.length) return [];
   if (Date.now() < liveCache.expires) return liveCache.streams;
   if (Date.now() >= twitchTokenExpires) {
