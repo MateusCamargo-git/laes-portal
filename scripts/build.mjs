@@ -15,6 +15,8 @@ cpSync('node_modules/tslib','.output/server/node_modules/tslib',{recursive:true}
 for(const [entry,browserFile,serverFile] of [
  ['features/teams/teams.jsx','laes-team-feature-athlete-20261112-v2-badge-art-v2.js','laes-team-feature-20261111-v1.mjs'],
  ['features/live/live.jsx','laes-live-feature-20261112-badge-art-v2.js','laes-live-feature-20261112.mjs'],
+ ['features/navigation/header.jsx','laes-site-header-20261117.js','laes-site-header-20261117.mjs'],
+ ['features/about/teams.jsx','laes-about-teams-20261117.js','laes-about-teams-20261117.mjs'],
 ]){
  const result=await build({entryPoints:[entry],bundle:true,write:false,format:'esm',jsx:'automatic',external:['react','react/jsx-runtime','@laes/runtime'],logLevel:'silent'});
  for(const browser of [true,false]){
@@ -31,6 +33,7 @@ for(const [source,target] of [
  ['features/badges/badges.css','laes-badges-art-20261114-v2.css'],
  ['features/profiles/profiles.css','laes-community-profiles-20261114.css'],
  ['features/loading/loading.css','laes-loading-20261114.css'],
+ ['features/navigation/header.css','laes-header-20261117.css'],
 ])cpSync(source,'.output/public/assets/'+target);
 cpSync('features/tournaments/agenda.js','.output/public/assets/campeonatos-modalidades-20261115-v1.js');
 

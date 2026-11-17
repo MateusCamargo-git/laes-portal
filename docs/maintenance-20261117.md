@@ -18,3 +18,9 @@ As seis equipes, logos padronizadas, agenda por modalidade, dados de campeonatos
 Navegação pública desktop/mobile, faixa das oito modalidades, seis equipes e detalhes, agenda e filtros, acesso/cadastro/recuperação, bloqueio de painel/admin sem sessão e testes de interface autenticada com respostas isoladas de atleta e administrador. Nenhuma conta real foi assumida e nenhuma gravação de teste foi encaminhada ao Supabase real. Os testes de interface autenticada não substituem validação de credenciais reais ou do provedor Google.
 
 O banco foi consultado pelas integrações autorizadas, sem alteração de usuários, pedidos, permissões ou elencos durante esta manutenção.
+
+## Cabeçalho e equipes em Sobre
+
+O cabeçalho compartilhado tem fonte editável em `features/navigation/header.jsx` e estilos em `header.css`, compilados para servidor e navegador. Mantém leão, preto, vinho, laranja e Chakra Petch; organiza os acessos, marca a rota atual, preserva ações de usuário/equipe administrativa e oferece menu móvel com Escape, fechamento ao navegar e foco de retorno.
+
+A grade da página Sobre deixou de usar nomes e caminhos de logos fixos. `features/about/teams.jsx` consulta as equipes ativas ordenadas em `teams`, usando seus nomes, logos padronizadas e slugs atuais. Assim a equipe Vixens aparece com sua identidade atual e as próximas mudanças não dependem de editar a apresentação manualmente.
