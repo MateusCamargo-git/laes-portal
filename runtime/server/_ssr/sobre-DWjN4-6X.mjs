@@ -1,3 +1,4 @@
+import {AboutTeams as LaesAboutTeams} from "./laes-about-teams-20261117.mjs";
 import { r as supabase } from "./backend-mB6vbMUi.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
@@ -382,28 +383,7 @@ function About() {
 						className: "mt-6 max-w-2xl leading-relaxed text-white/65",
 						children: "Cada equipe tem sua identidade. Todas fazem parte do mesmo movimento: conectar pessoas e representar a nossa comunidade nos jogos."
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6",
-						children: [
-							["alpha", "Alpha"],
-							["bravo", "Bravo"],
-							["eclipse", "Eclipse"],
-							["valkyrias", "Valkyrias"],
-							["nova", "Nova"],
-							["red-line", "Red Line"]
-						].map(([slug, name]) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "rounded-2xl bg-white p-4",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
-								src: `/images/teams/laes-${slug}-v2.png`,
-								alt: `Logo LAES ${name}`,
-								loading: "lazy",
-								className: "aspect-square w-full object-contain"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-								className: "mt-3 border-t border-black/10 pt-3 text-center text-xs font-bold uppercase tracking-wider text-black",
-								children: ["LAES ", name]
-							})]
-						}, slug))
-					})
+					/* @__PURE__ */ import_jsx_runtime.jsx(LaesAboutTeams,{})
 				]
 			})
 		}),

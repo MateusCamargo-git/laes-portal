@@ -17,6 +17,8 @@ A saída é `.output/`, o tipo de aplicação na Hostinger é **Nitro** e a entr
 
 ## Onde alterar
 
+- `features/navigation/`: cabeçalho compartilhado e menu responsivo.
+- `features/about/`: equipes atuais na apresentação da liga.
 - `features/teams/`: equipes, cadastro de atleta, painel, convites e elencos.
 - `features/profiles/`: comunidade e perfis públicos.
 - `features/badges/`: insígnias e administração.

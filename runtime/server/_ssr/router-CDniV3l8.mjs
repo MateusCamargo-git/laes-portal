@@ -1,3 +1,4 @@
+import {SiteHeader as LaesSiteHeader} from "./laes-site-header-20261117.mjs";
 import {LivePage} from "./laes-live-feature-20261112.mjs";
 import { r as __toESM } from "../_runtime.mjs";
 import { r as supabase } from "./backend-mB6vbMUi.mjs";
@@ -61,154 +62,7 @@ var NAV = [
 		label: "Contato"
 	}
 ];
-function SiteHeader() {
-	const [open, setOpen] = (0, import_react.useState)(false);
-	const { user, isStaff } = useAuth();
-	const navigate = useNavigate();
-	const qc = useQueryClient();
-	async function signOut() {
-		await qc.cancelQueries();
-		qc.clear();
-		await supabase.auth.signOut();
-		navigate({
-			to: "/auth",
-			replace: true
-		});
-	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", {
-		className: "sticky top-0 z-40 border-b border-sidebar-border bg-ink text-ink-foreground",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6",
-			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Logo, {}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("nav", {
-					className: "hidden items-center gap-1 xl:flex",
-					"aria-label": "Principal",
-					children: NAV.map((n) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-						to: n.to,
-						className: "px-2 py-2 font-display text-sm font-semibold uppercase tracking-wide text-ink-foreground/80 transition-colors hover:text-accent",
-						activeProps: { className: "text-accent" },
-						children: n.label
-					}, n.to))
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "hidden items-center gap-2 xl:flex",
-					children: user ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-						isStaff && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							asChild: true,
-							variant: "ghostInk",
-							size: "sm",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-								to: "/admin",
-								children: "Administração"
-							})
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							asChild: true,
-							variant: "ghostInk",
-							size: "sm",
-							className: "h-11",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Link, {
-								to: "/painel",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AccountAvatar, {}), " Meu painel"]
-							})
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							variant: "ghostInk",
-							size: "sm",
-							onClick: signOut,
-							children: "Sair"
-						})
-					] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-						asChild: true,
-						variant: "ghostInk",
-						size: "sm",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-							to: "/auth",
-							children: "Entrar"
-						})
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-						asChild: true,
-						variant: "hero",
-						size: "sm",
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-							to: "/faca-parte",
-							children: "Faça parte"
-						})
-					})] })
-				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-					className: "flex items-center gap-2 xl:hidden",
-					children: [user && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-						to: "/painel",
-						"aria-label": "Acessar meu painel",
-						className: "rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent",
-						onClick: () => setOpen(false),
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AccountAvatar, {})
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-						className: "rounded p-2 xl:hidden",
-						onClick: () => setOpen((o) => !o),
-						"aria-expanded": open,
-						"aria-label": open ? "Fechar menu" : "Abrir menu",
-						children: open ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(X, { className: "size-6" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Menu, { className: "size-6" })
-					})]
-				})
-			]
-		}), open && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("nav", {
-			className: "border-t border-sidebar-border px-4 pb-6 pt-2 xl:hidden",
-			"aria-label": "Menu móvel",
-			children: [NAV.map((n) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-				to: n.to,
-				onClick: () => setOpen(false),
-				className: "block border-b border-sidebar-border py-3 font-display text-base font-semibold uppercase tracking-wider",
-				children: n.label
-			}, n.to)), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "mt-4 grid gap-2",
-				children: user ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-					isStaff && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-						asChild: true,
-						variant: "heroOutline",
-						onClick: () => setOpen(false),
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-							to: "/admin",
-							children: "Administração"
-						})
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-						asChild: true,
-						variant: "hero",
-						onClick: () => setOpen(false),
-						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-							to: "/painel",
-							children: "Meu painel"
-						})
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-						variant: "ghostInk",
-						onClick: signOut,
-						children: "Sair"
-					})
-				] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					asChild: true,
-					variant: "hero",
-					onClick: () => setOpen(false),
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-						to: "/faca-parte",
-						children: "Faça parte da LAES"
-					})
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					asChild: true,
-					variant: "heroOutline",
-					onClick: () => setOpen(false),
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Link, {
-						to: "/auth",
-						children: "Entrar"
-					})
-				})] })
-			})]
-		})]
-	});
-}
+function SiteHeader(){return import_jsx_runtime.jsx(LaesSiteHeader,{})}
 var navLink = "block w-fit py-1 text-sm text-ink-foreground/65 transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent";
 var navTitle = "mb-4 text-xs font-bold uppercase tracking-[0.18em] text-accent";
 function SiteFooter() {
@@ -521,6 +375,7 @@ var Route$17 = createRootRouteWithContext()({
 		],
 		scripts: [{src:"/assets/laes-registration-20261111-v1.js"}],
 		links: [
+{rel:"stylesheet",href:"/assets/laes-header-20261117.css"},
 {rel:"stylesheet",href:"/assets/laes-loading-20261114.css"},
 {rel:"stylesheet",href:"/assets/laes-community-profiles-20261114.css"},
 {rel:"stylesheet",href:"/assets/laes-badges-art-20261114-v2.css"},
