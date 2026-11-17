@@ -1,0 +1,1 @@
+import {component as Legacy} from "./painel-legacy-laes-teams.mjs"; import {jsx} from "./laes-team-jsx-20261111-v1.mjs";import {Portal} from "./laes-team-feature-20261111-v1.mjs";export function component(){return jsx(Portal,{Legacy});}

@@ -1,0 +1,1 @@
+import {component as Legacy} from "./admin-legacy-laes-teams-badge-art-v2.js"; import {jsx} from "./laes-team-jsx-20261111-v1-badge-art-v2.js";import {Admin} from "./laes-team-feature-athlete-20261112-v2-badge-art-v2.js";export function component(){return jsx(Admin,{Legacy});}

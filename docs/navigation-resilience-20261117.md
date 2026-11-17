@@ -1,3 +1,5 @@
+> Registro histórico. A consolidação e a correção definitiva desta versão estão em [maintenance-20261117.md](maintenance-20261117.md).
+
 # Navegação da LAES — 17/11/2026
 
 O portal publicado é o runtime Nitro da build Hostinger `01a1da7b-22a0-71a0-8607-eef762ae5896`, com ajustes posteriores de agenda. A pasta src deste repositório continua sendo uma aplicação Vite antiga e não deve substituir a produção.

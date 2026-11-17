@@ -1,6 +1,12 @@
 node_modules/
+.output/
 dist/
+work/
 .env
 .env.*
 !.env.example
+*.log
+*.zip
 .DS_Store
+playwright-report/
+test-results/

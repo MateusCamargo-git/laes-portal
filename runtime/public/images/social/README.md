@@ -1,0 +1,1 @@
+Brand glyphs sourced from Simple Icons (https://github.com/simple-icons/simple-icons), icons/instagram.svg, facebook.svg, whatsapp.svg and discord.svg. Retrieved 2026-11-08. Simple Icons artwork is CC0; trademarks remain property of their respective owners. Brand glyph geometry preserved; native brand color applied. Used solely as links to LAES social channels.
