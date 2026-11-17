@@ -1,0 +1,1 @@
+import {t as Route} from "./equipes._slug-CfqML_46.mjs"; import {jsx} from "./laes-team-jsx-20261111-v1.mjs"; import {TeamDetail} from "./laes-team-feature-20261111-v1.mjs"; export function component(){return jsx(TeamDetail,{slug:Route.useParams().slug});}

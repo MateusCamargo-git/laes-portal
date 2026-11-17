@@ -1,0 +1,1 @@
+import{pt as e}from"./Logo-C_6nyl-f-badge-art-v2.js";import{o as t}from"./index-laes-agenda-20261115-v1.js";var n=e(),r=()=>(0,n.jsx)(t,{initialMode:`signup`});export{r as component};
