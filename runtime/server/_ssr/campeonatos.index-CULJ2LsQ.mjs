@@ -39,7 +39,7 @@ function Agenda() {
 					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
 						value: "",
 						children: "Todas"
-					}), Object.entries(tournamentStatusLabel).map(([k, v]) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
+					}), Object.entries(tournamentStatusLabel).filter(([k]) => k !== "encerrado" && k !== "cancelado").map(([k, v]) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("option", {
 						value: k,
 						children: v
 					}, k))]

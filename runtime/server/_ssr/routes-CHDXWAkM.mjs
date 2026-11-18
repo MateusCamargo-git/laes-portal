@@ -1,3 +1,4 @@
+import { r as tournamentsQuery } from "./catalog-ew-rK_t4.mjs";
 import {LiveSection} from "./laes-live-feature-20261112.mjs";
 import { r as __toESM } from "../_runtime.mjs";
 import { r as supabase } from "./backend-mB6vbMUi.mjs";
@@ -58,6 +59,7 @@ function CountUp({ value, visible }) {
 	})] });
 }
 function CommunityNumbers() {
+	const agenda = useQuery({ ...tournamentsQuery, refetchInterval: 15e3 });
 	const section = (0, import_react.useRef)(null);
 	const [visible, setVisible] = (0, import_react.useState)(false);
 	const [connected, setConnected] = (0, import_react.useState)(false);
@@ -128,7 +130,7 @@ function CommunityNumbers() {
 			icon: Heart
 		},
 		{
-			value: data?.championships,
+			value: agenda.data?.length,
 			label: "Campeonatos na agenda",
 			icon: Trophy
 		}

@@ -12,7 +12,7 @@ var teamsQuery = queryOptions({
 var tournamentsQuery = queryOptions({
 	queryKey: ["tournaments"],
 	queryFn: async () => {
-		const { data, error } = await supabase.from("tournaments").select("*,modalities(name)").eq("published", true).order("starts_at", { ascending: false });
+		const { data, error } = await supabase.from("tournaments").select("*,modalities(name)").eq("published", true).in("status", ["em_breve","inscricoes_abertas","inscricoes_encerradas","em_andamento"]).order("starts_at", { ascending: false });
 		if (error) throw error;
 		return data;
 	}
