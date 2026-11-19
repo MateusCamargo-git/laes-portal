@@ -10,6 +10,17 @@ const statuses = {
   cancelado: "Cancelado",
 };
 
+const tournamentExamples = {
+  category: "Ex.: Aberto ou Feminino",
+  organizer: "Ex.: Liga Alfenense de E-Sports",
+  platform: "Ex.: Discord ou Challengermode",
+  fee: "Ex.: Gratuito ou R$ 20 por equipe",
+  prize: "Ex.: R$ 500 para a equipe campeã",
+  external_url: "https://…",
+  rules_url: "https://…",
+  rules: "Ex.: Equipes de 5 jogadores. Fase de grupos em melhor de 1.",
+};
+
 const tournamentFields = [
   ["category", "Categoria"], ["organizer", "Organizador"], ["platform", "Plataforma"],
   ["fee", "Taxa de inscrição"], ["prize", "Premiação"], ["external_url", "Página oficial", "url"],
@@ -163,7 +174,7 @@ function TournamentForm({ record, modalities, onSaved, onCancel }) {
   function submit(event) {
     event.preventDefault();
     const action = event.nativeEvent.submitter?.value || "preview";
-    const payload = tournamentPayload(new FormData(event.currentTarget), record, action === "save" && !!record?.published);
+    const payload = tournamentPayload(new FormData(event.currentTarget), record, action === "publish" || (action === "save" && !!record?.published));
     if (!payload.name) {
       setError("Informe o nome do campeonato.");
       return;
@@ -183,12 +194,25 @@ function TournamentForm({ record, modalities, onSaved, onCancel }) {
     void save(payload);
   }
 
+  function renderFields(keys) {
+    return tournamentFields.filter(([key]) => keys.includes(key)).map(([key, label, type]) => (
+      <Field key={key} label={type === "datetime-local" ? `${label} (horário de Brasília)` : label}>
+        {key === "rules"
+          ? <textarea name={key} rows={4} defaultValue={record?.[key]} placeholder={tournamentExamples[key]} />
+          : <input name={key} type={type || "text"} defaultValue={type === "datetime-local" ? dateField(record?.[key]) : record?.[key]} placeholder={tournamentExamples[key]} />}
+      </Field>
+    ));
+  }
+
   return <div className="lt-panel">
     <h3>{record ? "Editar campeonato" : "Novo campeonato"}</h3>
+    <p className="lt-muted">Comece pelo nome e a modalidade. Você pode salvar um rascunho e completar os detalhes depois.</p>
     <Feedback error={error} />
     <form className="lt-form" onSubmit={submit} hidden={!!preview}>
-      <fieldset disabled={busy} className="lt-admin-fields">
-        <Field label="Nome do campeonato"><input name="name" required maxLength={120} defaultValue={record?.name} /></Field>
+      <fieldset disabled={busy} className="lt-team-form-group">
+        <legend>Identificação do campeonato</legend>
+        <div className="lt-admin-fields">
+        <Field label="Nome do campeonato"><input name="name" required maxLength={120} defaultValue={record?.name} placeholder="Ex.: Copa LAES de VALORANT" /></Field>
         <Field label="Modalidade"><select name="modality_id" required defaultValue={record?.modality_id || ""}>
           <option value="">Selecione a modalidade</option>
           {modalities.map(modality => <option key={modality.id} value={modality.id}>{modality.name}</option>)}
@@ -199,14 +223,23 @@ function TournamentForm({ record, modalities, onSaved, onCancel }) {
         <Field label="Situação"><select name="status" defaultValue={record?.status || "em_breve"}>
           {Object.entries(statuses).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select></Field>
-        {tournamentFields.map(([key, label, type]) => <Field key={key} label={type === "datetime-local" ? `${label} (horário de Brasília)` : label}>
-          {key === "rules" ? <textarea name={key} rows={4} defaultValue={record?.[key]} /> :
-            <input name={key} type={type || "text"} defaultValue={type === "datetime-local" ? dateField(record?.[key]) : record?.[key]} />}
-        </Field>)}
+        </div>
+        <p className="lt-muted">Use “Em breve” quando a inscrição ainda não estiver liberada.</p>
+      </fieldset>
+      <fieldset disabled={busy} className="lt-team-form-group">
+        <legend>Datas e inscrição</legend>
+        <p className="lt-muted">Informe as datas no horário de Brasília. Se a inscrição terminar ao preencher todas as vagas, marque essa opção.</p>
+        <div className="lt-admin-fields">{renderFields(["starts_at","registration_deadline","external_url","fee"])}</div>
         <label className="lt-check"><input name="until_full" type="checkbox" defaultChecked={record?.until_full} />Até as vagas esgotarem</label>
       </fieldset>
+      <fieldset disabled={busy} className="lt-team-form-group">
+        <legend>Detalhes do evento (opcionais)</legend>
+        <div className="lt-admin-fields">{renderFields(["category","organizer","platform","prize","logo_url","rules_url"])}</div>
+        {renderFields(["rules"])}
+      </fieldset>
       <div className="lt-actions">
-        <button className="lt-button" value="preview" disabled={busy}>Prévia</button>
+        <button className="lt-button lt-secondary" value="preview" disabled={busy}>Prévia</button>
+        {!record?.published && <button className="lt-button" value="publish" disabled={busy}>Publicar na agenda</button>}
         {record?.published && <button className="lt-button lt-secondary" value="draft" disabled={busy}>Retirar da agenda</button>}
         <button className="lt-button lt-secondary" value="save" disabled={busy}>{record?.published ? "Salvar alterações" : "Salvar rascunho"}</button>
         <button type="button" className="lt-button lt-secondary" disabled={busy} onClick={onCancel}>Cancelar</button>
