@@ -19,6 +19,16 @@ test('server and browser agree on the pending Suspense boundary',()=>{
  assert.match(server,/defaultPendingMs:\s*150/);assert.match(browser,/defaultPendingMs:150/);
  for(const resource of ['laes-teams-20261114-aligned.css','laes-loading-20261114.css','laes-registration-20261111-v1.js']){assert(server.includes(resource));assert(browser.includes(resource));}
 });
+test('the published browser and server use the same versioned team stylesheet',()=>{
+ const stylesheet=`laes-teams-20261114-aligned-${release.version}.css`;
+ const browser=readFileSync(path.join(root,release.entry),'utf8');
+ const server=readFileSync('.output/server/_ssr/router-CDniV3l8.mjs','utf8');
+ assert(files.has(stylesheet));
+ assert(!files.has('laes-teams-20261114-aligned.css'));
+ assert(browser.includes(stylesheet));
+ assert(server.includes(stylesheet));
+ assert.match(readFileSync(path.join(root,stylesheet),'utf8'),/\.lt-admin-layout\s*\{\s*display:grid/);
+});
 test('Nitro asset lengths match the complete published module bytes',()=>{
  const source=readFileSync('.output/server/index.mjs','utf8');const marker='var public_assets_data_default = ';const start=source.indexOf(marker)+marker.length;const end=source.indexOf('\n};',start)+2;const registry=JSON.parse(source.slice(start,end));
  for(const name of files){const key='/assets/'+name;assert.equal(registry[key]?.size,statSync(path.join(root,name)).size,key);}

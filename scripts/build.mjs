@@ -49,10 +49,10 @@ for(const browser of [true,false]){
  code=code.slice(0,start)+factory+card.code.replaceAll('function TournamentCard(',`function ${name}(`)+'\n'+code.slice(end);writeFileSync(file,code);
 }
 
-// Version the entire module graph as a unit. Circular imports must resolve to one entry.
-const assetsDir='.output/public/assets';const names=readdirSync(assetsDir).filter(n=>n.endsWith('.js'));
+// Version scripts and styles together so cached styles cannot drift from the markup.
+const assetsDir='.output/public/assets';const names=readdirSync(assetsDir).filter(n=>/\.(js|css)$/.test(n));
 const release=createHash('sha256');for(const n of names.sort()){release.update(n);release.update(readFileSync(path.join(assetsDir,n)))}
-const version=release.digest('hex').slice(0,12);const mappings=names.map(n=>[n,n.slice(0,-3)+'-'+version+'.js']);
+const version=release.digest('hex').slice(0,12);const mappings=names.map(n=>{const ext=path.extname(n);return [n,n.slice(0,-ext.length)+'-'+version+ext]});
 function visit(dir,fn){for(const item of readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,item.name);if(item.isDirectory()){if(item.name!=='node_modules')visit(file,fn)}else if(item.isFile())fn(file)}}
 visit('.output',file=>{if(!/\.(js|mjs|html|json)$/.test(file))return;let code=readFileSync(file,'utf8');for(const [old,next]of mappings)code=code.replaceAll(old,next);writeFileSync(file,code)});
 for(const [old,next]of mappings)renameSync(path.join(assetsDir,old),path.join(assetsDir,next));
@@ -65,4 +65,4 @@ const mime={'.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf
 visit('.output/public',file=>{const relative=path.relative('.output/public',file).split(path.sep).join('/');const key='/'+relative;const bytes=readFileSync(file);assets[key]={type:previous[key]?.type||mime[path.extname(file)]||'application/octet-stream',path:'../public/'+relative,size:bytes.length,etag:'"'+createHash('sha256').update(bytes).digest('hex')+'"',mtime:statSync(file).mtime.toISOString()}});
 code=code.slice(0,start)+JSON.stringify(assets,null,2)+code.slice(end);writeFileSync(entry,code);
 writeFileSync('.output/release.json',JSON.stringify({version,entry:mappings.find(([n])=>n==='index-laes-agenda-20261115-v1.js')[1]},null,2));
-console.log(`LAES ${version}: one browser entry, ${names.length} versioned modules; runtime and editable features ready.`);
+console.log(`LAES ${version}: one browser entry, ${names.length} versioned scripts and styles; runtime and editable features ready.`);
