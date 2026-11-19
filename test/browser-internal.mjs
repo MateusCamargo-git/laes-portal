@@ -25,6 +25,11 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
  else if(u.pathname.includes('/rpc/')){const name=u.pathname.split('/').pop();const p=req.postDataJSON()||{};
   if(name==='team_portal'){
    if(p.action==='state')body={is_admin:admin,nick:profile.nick,contact:{},games:[],memberships:[],requests:[],invites:[],captain_teams:[],managed_teams:[]};
+   else if(p.action==='create_team'){
+     writes.push({name,action:p.action});
+     team={...team,id:'00000000-0000-4000-8000-000000000092',name:p.payload.name,slug:p.payload.slug,logo_url:null};
+     body={team_id:team.id};
+   }
    else if(['review_requests','directory','roster'].includes(p.action))body=[];
    else {writes.push({name,action:p.action});body={};}
   }else if(name==='community_action')body=p.action==='directory'?[]:{};
@@ -56,7 +61,10 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
   await p.getByRole('button',{name:'Gerenciar elencos',exact:true}).click();
   await p.getByRole('button',{name:'Editar página da equipe'}).click();
   await p.getByLabel('Nome da equipe',{exact:true}).fill('Equipe atualizada');
-  await p.getByLabel('Enviar novo escudo').setInputFiles({name:'escudo.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aBSsAAAAASUVORK5CYII=','base64')});
+  await p.getByLabel('Escolher imagem do PC ou celular').setInputFiles({name:'escudo.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aBSsAAAAASUVORK5CYII=','base64')});
+  await p.getByRole('img',{name:'Prévia do novo escudo'}).waitFor();
+  await p.waitForFunction(()=>document.querySelector('img[alt="Prévia do novo escudo"]')?.naturalWidth>0);
+  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth),390);
   await p.getByRole('button',{name:'Salvar página da equipe'}).click();
   await p.getByText('Página da equipe atualizada.').waitFor();
   assert.equal(team.name,'Equipe atualizada');
@@ -75,6 +83,11 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
   await p.getByRole('button',{name:'Revogar acesso'}).click();
   await p.getByText('Acesso revogado.').waitFor();
   assert.deepEqual(writes.map(write=>write.method),['POST','DELETE']);
+  await p.getByRole('button',{name:'Equipes e capitães',exact:true}).click();
+  await p.getByLabel('Nome da equipe',{exact:true}).fill('Equipe nova QA');
+  await p.getByRole('button',{name:'Criar equipe e configurar escudo'}).click();
+  await p.getByLabel('Escolher imagem do PC ou celular').waitFor();
+  assert.equal(await p.getByLabel('Equipe que vou gerenciar').inputValue(),team.id);
  }
  if(manager){
   await p.getByRole('heading',{name:'Campeonatos',exact:true}).waitFor();
