@@ -168,7 +168,103 @@ function ContactEditor({ contact, games, data, onSaved, initialNick }) {
 function Requests({ requests, run, busy }) {
   return <div className="lt-request-list">{!requests.length && <p className="lt-muted">Nenhum pedido aguardando análise.</p>}{requests.map(r => <article key={r.id} className="lt-request"><div className="lt-row"><h3>{r.nick}</h3><Pill red>{r.kind === "captain" ? "Pedido de capitania" : SLOT[r.member_type]}</Pill></div><p>{r.team_name}{r.role_name ? ` · ${r.role_name}` : ""}</p><Positions games={r.games} />{r.message && <p className="lt-message">{r.message}</p>}<WhatsApp value={r.whatsapp} /><div className="lt-actions"><Button disabled={busy} onClick={() => run("decide_request",{id:r.id,accept:true},"Pedido aprovado. O atleta já está no elenco.")}>Aprovar {r.kind === "captain" ? "capitão" : "pedido"}</Button><Button secondary disabled={busy} onClick={() => run("decide_request",{id:r.id,accept:false},"Pedido não aprovado.")}>Não aprovar</Button></div></article>)}</div>;
 }
-function TeamManager({ teams, requests, run, busy, revision }) {
+function TeamPublicProfile({ team, userId, onSaved }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const uploaded = useRef(null);
+
+  async function save(event) {
+    event.preventDefault();
+    if (saving) return;
+    const form = new FormData(event.currentTarget);
+    const name = String(form.get("name")).trim();
+    const category = String(form.get("category")).trim() || null;
+    const description = String(form.get("description")).trim() || null;
+    let logo = String(form.get("logo")).trim() || null;
+    const file = form.get("file");
+    const extension = {"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[file?.type];
+    setMessage("");
+    setError("");
+    if (name.length < 2) {
+      setError("Informe um nome com pelo menos dois caracteres.");
+      return;
+    }
+    if (file?.size && (!extension || file.size > 5 * 1024 * 1024)) {
+      setError("Envie um escudo PNG, JPG ou WEBP de até 5 MB.");
+      return;
+    }
+    if (logo && logo !== team.logo_url && !file?.size && !/^https:\/\//i.test(logo) && !/^\/images\/[a-z0-9_./-]+$/i.test(logo)) {
+      setError("Use um endereço HTTPS ou um caminho de imagem do portal.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (file?.size) {
+        const previous = uploaded.current;
+        if (previous?.file.name === file.name && previous.file.lastModified === file.lastModified &&
+            previous.file.size === file.size && previous.file.type === file.type) {
+          logo = previous.logo;
+        } else {
+          const path = `content/${userId}/${crypto.randomUUID()}.${extension}`;
+          const { error: uploadError } = await supabase.storage.from("media")
+            .upload(path, file, { contentType: file.type, upsert: false });
+          if (uploadError) throw new Error("Não foi possível enviar o escudo. Tente novamente.");
+          logo = `storage://media/${path}`;
+          uploaded.current = { file, logo };
+        }
+      }
+
+      const fields = { name, category, description, logo_url: logo };
+      const changes = Object.entries(fields).filter(([key, value]) => (team[key] ?? null) !== value);
+      if (changes.length) {
+        let update = supabase.from("teams").update(Object.fromEntries(changes)).eq("id", team.id).eq("active", true);
+        for (const [key] of changes) {
+          update = team[key] == null ? update.is(key, null) : update.eq(key, team[key]);
+        }
+        const { data, error: updateError } = await update.select("id").maybeSingle();
+        if (updateError || !data) throw new Error("Não foi possível salvar. Atualize a página para conferir os dados e tente novamente.");
+        await onSaved();
+      }
+      uploaded.current = null;
+      setEditing(false);
+      setMessage(changes.length ? "Página da equipe atualizada." : "Nenhuma alteração para salvar.");
+    } catch (failure) {
+      setError(failure.message || "Não foi possível atualizar a equipe.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return <section className="lt-panel lt-team-profile">
+    <div className="lt-admin-row">
+      <div className="lt-team-profile-title">
+        <MediaImage src={team.logo_url} alt={`Escudo de ${team.name}`} />
+        <div><h3>Página da equipe</h3><p>{team.name} · {team.modality_name}</p></div>
+      </div>
+      <a className="lt-link" href={`/equipes/${team.slug}`}>Ver página pública</a>
+    </div>
+    <Notice>{message}</Notice>
+    <Notice error>{error}</Notice>
+    {editing ? <form className="lt-form" onSubmit={save}>
+      <fieldset className="lt-admin-fields" disabled={saving}>
+        <Field label="Nome da equipe"><input name="name" defaultValue={team.name} required maxLength={80} /></Field>
+        <Field label="Categoria"><input name="category" defaultValue={team.category ?? ""} maxLength={60} /></Field>
+        <Field label="Endereço do escudo"><input name="logo" defaultValue={team.logo_url ?? ""} maxLength={2048} /></Field>
+        <Field label="Enviar novo escudo"><input name="file" type="file" accept="image/png,image/jpeg,image/webp" /></Field>
+      </fieldset>
+      <Field label="Apresentação pública"><textarea name="description" defaultValue={team.description ?? ""} maxLength={2000} rows={4} disabled={saving} /></Field>
+      <div className="lt-actions">
+        <Button type="submit" disabled={saving}>{saving ? "Salvando…" : "Salvar página da equipe"}</Button>
+        <Button type="button" secondary disabled={saving} onClick={() => {uploaded.current = null; setError(""); setEditing(false);}}>Cancelar</Button>
+      </div>
+    </form> : <Button type="button" secondary onClick={() => {setMessage(""); setEditing(true);}}>Editar página da equipe</Button>}
+  </section>;
+}
+
+function TeamManager({ teams, requests, run, busy, revision, profileEditor }) {
   const [teamId, setTeamId] = useState(teams[0]?.id || ""), [slot,setSlot] = useState("titular"), [position,setPosition] = useState(""), [link,setLink] = useState("");
   useEffect(() => {if (!teams.some(t => t.id===teamId)) setTeamId(teams[0]?.id || "");},[teams,teamId]);
   const roster = useLoader(() => teamId ? rpc("roster",{team_id:teamId}) : [], [teamId,revision]);
@@ -176,6 +272,7 @@ function TeamManager({ teams, requests, run, busy, revision }) {
   if (!team) return <Notice>Você ainda não tem uma equipe para gerenciar. Solicite uma capitania e aguarde a aprovação da administração.</Notice>;
   async function generate() {const result=await run("create_link",{team_id:teamId,member_type:slot,role_name:position},"Convite criado. Compartilhe o link com a pessoa escolhida.");if(result?.token)setLink(`${location.origin}/painel?convite=${result.token}`);}
   return <div className="lt-form"><Field label="Equipe que vou gerenciar"><select value={teamId} onChange={e => {setTeamId(e.target.value);setLink("");}}>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field><Capacity team={team} />
+    {profileEditor && <TeamPublicProfile key={team.id} team={team} {...profileEditor} />}
     <div className="lt-panel"><h3>Convide alguém por link</h3><div className="lt-filters"><Field label="Tipo de vaga"><select value={slot} onChange={e=>setSlot(e.target.value)}><option value="titular">Titular</option><option value="reserva">Reserva</option></select></Field><Field label="Posição combinada (opcional)"><input value={position} maxLength={80} onChange={e=>setPosition(e.target.value)} /></Field></div><Button disabled={busy} onClick={generate}>Gerar convite por link</Button><p className="lt-muted">Uso único, válido por sete dias. A pessoa entra com sua própria conta e confirma a participação. A vaga é preenchida quando o convite é aceito.</p>{link && <div className="lt-form"><input aria-label="Link de convite" readOnly value={link} onFocus={e=>e.target.select()} /><Button secondary onClick={async()=>{try{await navigator.clipboard.writeText(link);}catch{}}}>Copiar link</Button></div>}</div>
     <div className="lt-panel"><h3>Pedidos para esta equipe</h3><Requests requests={requests.filter(r=>r.team_id===teamId)} {...{run,busy}} /></div>
     <div className="lt-panel"><h3>Elenco e contato para treinos</h3><Notice error>{roster.error}</Notice>{roster.loading ? <Waiting /> : !roster.data?.length ? <p className="lt-muted">As primeiras vagas estão esperando pelos seus convites.</p> : roster.data.map(m => <article key={m.id} className="lt-request"><div className="lt-row"><h4>{m.nick}</h4><Pill>{SLOT[m.member_type] || m.member_type}{m.is_captain ? " · Capitão" : ""}</Pill></div><Positions games={m.games} /><WhatsApp value={m.whatsapp} />{!m.is_captain && <div className="lt-actions"><Button secondary disabled={busy} onClick={()=>run("change_slot",{id:m.id,member_type:m.member_type==='titular'?'reserva':'titular'},"Tipo de vaga atualizado.")}>Mover para {m.member_type==='titular'?'reserva':'titular'}</Button><Button secondary disabled={busy} onClick={()=>{if(confirm(`Remover ${m.nick} de ${team.name}?`))run("remove_member",{id:m.id},"Integrante removido da equipe.");}}>Remover integrante</Button></div>}</article>)}</div>
@@ -204,7 +301,7 @@ function CreateTeam({ data, run, busy }) {
   const formats=data.formats.filter(f=>f.modality_id===modality), selected=data.modalities.find(m=>m.id===modality);
   useEffect(()=>setFormat(selected?.slug==='ea-sports-fc'?'pro_clubs':'padrao'),[modality]);
   const preset=formats.find(f=>f.format===format),slug=name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
-  async function submit(event){event.preventDefault();const form=new FormData(event.currentTarget);const result=await run("create_team",{name,slug,modality_id:modality,format,category:form.get("category"),description:form.get("description")},"Equipe criada com todas as vagas abertas.");if(result){setName("");event.target.reset();}}
+  async function submit(event){event.preventDefault();const formElement=event.currentTarget;const form=new FormData(formElement);const result=await run("create_team",{name,slug,modality_id:modality,format,category:form.get("category"),description:form.get("description")},"Equipe criada com todas as vagas abertas.");if(result){setName("");formElement.reset();}}
   return <form className="lt-form lt-panel" onSubmit={submit}><p className="lt-eyebrow">Administração da Liga</p><h2>Crie a próxima equipe.</h2><Field label="Nome da equipe"><input value={name} onChange={e=>setName(e.target.value)} required minLength={2} maxLength={80} placeholder="Ex.: LAES Phoenix" /></Field><Field label="Modalidade"><select value={modality} onChange={e=>setModality(e.target.value)}>{data.modalities.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></Field><Field label="Formato do elenco"><select value={format} onChange={e=>setFormat(e.target.value)}>{formats.map(f=><option key={f.format} value={f.format}>{f.label}</option>)}</select></Field>{preset && <Pill>{preset.starter_slots} titulares + {preset.reserve_slots} reservas</Pill>}<Field label="Categoria"><input name="category" maxLength={60} placeholder="Misto, feminino, livre…" /></Field><Field label="Apresentação da equipe"><textarea name="description" rows={3} maxLength={2000} /></Field><p className="lt-muted">Endereço: /equipes/{slug || "nome-da-equipe"}. A capitania será definida após seu aceite de um pedido.</p><Button disabled={busy || !preset}>{busy?'Criando…':'Criar equipe com vagas abertas'}</Button></form>;
 }
 
@@ -253,7 +350,7 @@ function TeamWorkspace({ adminPage = false, Legacy }) {
     {tab==='access'&&s.is_admin&&<PeopleAccess key={auth.user.id} load={useLoader} modalities={d.modalities} />}
     {tab==='tournaments'&&s.is_admin&&<TournamentWorkspace key={auth.user.id} load={useLoader} modalities={d.modalities} />}
     {tab==='badges'&&<BadgeAdmin />}
-    {tab==='manage'&&<TeamManager teams={managed} requests={requests.data||empty} {...{run,busy,revision}} />}
+    {tab==='manage'&&<TeamManager teams={managed} requests={requests.data||empty} profileEditor={s.is_admin ? { userId:auth.user.id, onSaved:data.reload } : undefined} {...{run,busy,revision}} />}
     {tab==='community'&&<Community data={d} {...{managed,run,busy,revision}} />}
     {tab==='profile'&&<ContactEditor key={auth.user.id} contact={s.contact} initialNick={s.nick} games={s.games} data={d} onSaved={()=>{state.reload();setRevision(r=>r+1);}} />}
     {tab==='teams'&&<>

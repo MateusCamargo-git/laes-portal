@@ -8,10 +8,18 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
  const otherModality={...modality,id:"00000000-0000-4000-8000-000000000090",name:"Outra modalidade"};
  const tournamentId="00000000-0000-4000-8000-000000000091";
  let tournament=null, grant=null;
- const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:manager?390:1365,height:1000}});const user={id:uid,email:'qa@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email',providers:['email']},user_metadata:{display_name:'QA LAES',account_notice_version:'2026-11-08'},created_at:'2026-11-01T12:00:00Z'};const profile={id:uid,nick:'QA LAES',full_name:'QA LAES',city:'Alfenas',state:'MG',avatar_url:null,bio:'Perfil isolado para teste de interface.',is_public:true,onboarded:true,account_notice_accepted_at:'2026-11-17T12:00:00Z',public_profile:true,athlete_registered_at:'2026-11-17T12:00:00Z',onboarding_complete:true,whatsapp:null,availability:"Noite",social_links:{},twitch_channel:null};
+ let team={...fixture.teams[0]};
+ const context=await browser.newContext({ignoreHTTPSErrors:true,viewport:{width:role==="athlete"?1365:390,height:1000}});const user={id:uid,email:'qa@example.invalid',aud:'authenticated',role:'authenticated',app_metadata:{provider:'email',providers:['email']},user_metadata:{display_name:'QA LAES',account_notice_version:'2026-11-08'},created_at:'2026-11-01T12:00:00Z'};const profile={id:uid,nick:'QA LAES',full_name:'QA LAES',city:'Alfenas',state:'MG',avatar_url:null,bio:'Perfil isolado para teste de interface.',is_public:true,onboarded:true,account_notice_accepted_at:'2026-11-17T12:00:00Z',public_profile:true,athlete_registered_at:'2026-11-17T12:00:00Z',onboarding_complete:true,whatsapp:null,availability:"Noite",social_links:{},twitch_channel:null};
  const token=['eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',Buffer.from(JSON.stringify({sub:uid,exp:Math.floor(Date.now()/1000)+3600,iat:Math.floor(Date.now()/1000),role:'authenticated',aud:'authenticated'})).toString('base64url'),'test-signature'].join('.');
  await context.addInitScript(({user,token})=>{localStorage.setItem('laes-txwxodscfnbsgltmrfjz-auth',JSON.stringify({access_token:token,refresh_token:'test-only',token_type:'bearer',expires_in:3600,expires_at:Math.floor(Date.now()/1000)+3600,user}))},{user,token});
  let writes=[];await context.route('https://txwxodscfnbsgltmrfjz.supabase.co/**',async route=>{const req=route.request(),u=new URL(req.url());const single=(req.headers().accept||'').includes('vnd.pgrst.object');let body=[];
+ if(u.pathname.startsWith('/storage/v1/object/sign/media/')){
+   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({signedURL:'/object/qa-image'})});
+ }
+ if(u.pathname.startsWith('/storage/v1/object/media/content/')&&req.method()==='POST'){
+   writes.push({table:'escudo',method:'POST'});
+   return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({Key:u.pathname})});
+ }
  if(u.pathname.startsWith('/auth/v1/user'))body=user;
  else if(u.pathname.startsWith('/auth/'))body={access_token:token,refresh_token:'test-only',user};
  else if(u.pathname.includes('/rpc/')){const name=u.pathname.split('/').pop();const p=req.postDataJSON()||{};
@@ -23,11 +31,14 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
   else if(name==='get_athlete_badges')body={earned:[],spotlight:[],participations:0,titles:0};
   else if(name==='manage_athlete_badges')body={athletes:[],tournaments:[],history:[]};
   else body=[];
- }else{const table=u.pathname.split('/').pop();body=table==='profiles'?((single||u.searchParams.has('id'))?profile:[profile]):table==='profiles_private'?(single?{user_id:uid,whatsapp:null,share_contact:false}:[]):table==='user_roles'?(admin?[{role:'admin'}]:[]):table==='team_roster_status'?fixture.teams:table==='teams'?fixture.teams:table==='modalities'?[modality,otherModality]:table==='team_roster_formats'?fixture.formats:table==='modality_roles'?fixture.roles:[];const method=req.method();
+ }else{const table=u.pathname.split('/').pop();body=table==='profiles'?((single||u.searchParams.has('id'))?profile:[profile]):table==='profiles_private'?(single?{user_id:uid,whatsapp:null,share_contact:false}:[]):table==='user_roles'?(admin?[{role:'admin'}]:[]):table==='team_roster_status'?[team]:table==='teams'?[team]:table==='modalities'?[modality,otherModality]:table==='team_roster_formats'?fixture.formats:table==='modality_roles'?fixture.roles:[];const method=req.method();
  if(table==='modality_admins'){
   if(method==='POST'){grant={id:'grant-qa',...req.postDataJSON(),profiles:profile,modalities:modality};body={id:grant.id};}
   else if(method==='DELETE'){body={id:grant.id};grant=null;}
   else body=manager?[{modality_id:modality.id}]:grant?[grant]:[];
+ }
+ if(table==='teams'&&method==='PATCH'){
+  team={...team,...req.postDataJSON()};body={id:team.id};
  }
  if(table==='tournaments'){
   if(method==='POST'){tournament={id:tournamentId,...req.postDataJSON()};body={id:tournament.id};}
@@ -42,6 +53,17 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
  const labels=manager?[]:admin?['Gerenciar elencos','Comunidade','Insígnias','Conteúdo do portal']:['Minha equipe','Convites','Atividade','Meu perfil','Configurações'];
  for(const label of labels){const tab=p.getByRole('tab',{name:label,exact:true});const button=p.getByRole('button',{name:label,exact:true});const link=p.getByRole('link',{name:label,exact:true});if(await tab.count()){await tab.first().click();assert.equal(await tab.first().getAttribute('aria-selected'),'true')}else if(await button.count()){await button.first().click()}else if(await link.count()){await link.first().click()}else{throw new Error('Missing internal tab '+label)}await p.waitForTimeout(400);console.log('TAB',label,(await p.locator('main').innerText()).slice(0,180));}
  if(admin){
+  await p.getByRole('button',{name:'Gerenciar elencos',exact:true}).click();
+  await p.getByRole('button',{name:'Editar página da equipe'}).click();
+  await p.getByLabel('Nome da equipe',{exact:true}).fill('Equipe atualizada');
+  await p.getByLabel('Enviar novo escudo').setInputFiles({name:'escudo.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aBSsAAAAASUVORK5CYII=','base64')});
+  await p.getByRole('button',{name:'Salvar página da equipe'}).click();
+  await p.getByText('Página da equipe atualizada.').waitFor();
+  assert.equal(team.name,'Equipe atualizada');
+  assert.match(team.logo_url,/^storage:\/\/media\/content\//);
+  assert.equal(team.slug,fixture.teams[0].slug);
+  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth),390);
+  assert.deepEqual(writes.splice(0).map(write=>[write.table,write.method]),[['escudo','POST'],['teams','PATCH']]);
   await p.getByRole('button',{name:'Pessoas e acessos',exact:true}).click();
   await p.getByLabel('Buscar por nickname').fill('QA');
   await p.getByRole('option',{name:/QA LAES/}).waitFor({state:'attached'});

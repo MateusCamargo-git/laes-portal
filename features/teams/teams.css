@@ -30,3 +30,9 @@ fieldset.lt-admin-fields { min-width: 0; border: 0; padding: 0; }
   .lt-admin-fields { grid-template-columns: minmax(0, 1fr); }
   .lt-admin-row > .lt-button { width: 100%; }
 }
+
+.lt-team-profile { display: grid; gap: 16px; }
+.lt-team-profile-title { display: flex; align-items: center; gap: 12px; }
+.lt-team-profile-title img { width: 52px; height: 52px; object-fit: contain; flex: 0 0 52px; }
+.lt-team-profile input { min-width: 0; min-height: 44px; }
+.lt-team-profile input[type=file] { max-width: 100%; }
