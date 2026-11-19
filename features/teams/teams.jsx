@@ -168,12 +168,40 @@ function ContactEditor({ contact, games, data, onSaved, initialNick }) {
 function Requests({ requests, run, busy }) {
   return <div className="lt-request-list">{!requests.length && <p className="lt-muted">Nenhum pedido aguardando análise.</p>}{requests.map(r => <article key={r.id} className="lt-request"><div className="lt-row"><h3>{r.nick}</h3><Pill red>{r.kind === "captain" ? "Pedido de capitania" : SLOT[r.member_type]}</Pill></div><p>{r.team_name}{r.role_name ? ` · ${r.role_name}` : ""}</p><Positions games={r.games} />{r.message && <p className="lt-message">{r.message}</p>}<WhatsApp value={r.whatsapp} /><div className="lt-actions"><Button disabled={busy} onClick={() => run("decide_request",{id:r.id,accept:true},"Pedido aprovado. O atleta já está no elenco.")}>Aprovar {r.kind === "captain" ? "capitão" : "pedido"}</Button><Button secondary disabled={busy} onClick={() => run("decide_request",{id:r.id,accept:false},"Pedido não aprovado.")}>Não aprovar</Button></div></article>)}</div>;
 }
-function TeamPublicProfile({ team, userId, onSaved }) {
-  const [editing, setEditing] = useState(false);
+const shieldFormats = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
+const shieldLimit = 5 * 1024 * 1024;
+
+function TeamPublicProfile({ team, userId, onSaved, startEditing = false }) {
+  const [editing, setEditing] = useState(startEditing);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const uploaded = useRef(null);
+  const fileInput = useRef(null);
+  const [file, setFile] = useState(null);
+  const [imageUrl, setImageUrl] = useState("");
+  useEffect(() => {
+    if (!file) {
+      setImageUrl("");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setImageUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+
+  function chooseFile(event) {
+    const picked = event.currentTarget.files[0];
+    setError("");
+    if (picked && (!shieldFormats[picked.type] || !picked.size || picked.size > shieldLimit)) {
+      event.currentTarget.value = "";
+      setFile(null);
+      setError("Escolha um arquivo PNG, JPG ou WEBP de até 5 MB.");
+      return;
+    }
+    uploaded.current = null;
+    setFile(picked || null);
+  }
 
   async function save(event) {
     event.preventDefault();
@@ -183,15 +211,14 @@ function TeamPublicProfile({ team, userId, onSaved }) {
     const category = String(form.get("category")).trim() || null;
     const description = String(form.get("description")).trim() || null;
     let logo = String(form.get("logo")).trim() || null;
-    const file = form.get("file");
-    const extension = {"image/png":"png","image/jpeg":"jpg","image/webp":"webp"}[file?.type];
+    const extension = shieldFormats[file?.type];
     setMessage("");
     setError("");
     if (name.length < 2) {
       setError("Informe um nome com pelo menos dois caracteres.");
       return;
     }
-    if (file?.size && (!extension || file.size > 5 * 1024 * 1024)) {
+    if (file?.size && (!extension || file.size > shieldLimit)) {
       setError("Envie um escudo PNG, JPG ou WEBP de até 5 MB.");
       return;
     }
@@ -229,6 +256,7 @@ function TeamPublicProfile({ team, userId, onSaved }) {
         await onSaved();
       }
       uploaded.current = null;
+      setFile(null);
       setEditing(false);
       setMessage(changes.length ? "Página da equipe atualizada." : "Nenhuma alteração para salvar.");
     } catch (failure) {
@@ -249,30 +277,50 @@ function TeamPublicProfile({ team, userId, onSaved }) {
     <Notice>{message}</Notice>
     <Notice error>{error}</Notice>
     {editing ? <form className="lt-form" onSubmit={save}>
-      <fieldset className="lt-admin-fields" disabled={saving}>
-        <Field label="Nome da equipe"><input name="name" defaultValue={team.name} required maxLength={80} /></Field>
-        <Field label="Categoria"><input name="category" defaultValue={team.category ?? ""} maxLength={60} /></Field>
-        <Field label="Endereço do escudo"><input name="logo" defaultValue={team.logo_url ?? ""} maxLength={2048} /></Field>
-        <Field label="Enviar novo escudo"><input name="file" type="file" accept="image/png,image/jpeg,image/webp" /></Field>
+      <fieldset className="lt-team-form-group" disabled={saving}>
+        <legend>Informações que aparecem no site</legend>
+        <div className="lt-admin-fields">
+          <Field label="Nome da equipe"><input name="name" defaultValue={team.name} required minLength={2} maxLength={80} aria-describedby="laes-team-name-help" /></Field>
+          <Field label="Categoria"><input name="category" defaultValue={team.category ?? ""} maxLength={60} placeholder="Ex.: Feminino, Misto ou Livre" /></Field>
+        </div>
+        <p className="lt-muted" id="laes-team-name-help">Use o nome que os jogadores reconhecem. O endereço da página continua o mesmo.</p>
+        <Field label="Apresentação pública"><textarea name="description" defaultValue={team.description ?? ""} maxLength={2000} rows={4} aria-describedby="laes-team-bio-help" placeholder="Ex.: Equipe de VALORANT de Alfenas. Jogamos em grupo e treinamos à noite." /></Field>
+        <p className="lt-muted" id="laes-team-bio-help">Conte o que a equipe joga, quando treina e que tipo de jogador procura.</p>
       </fieldset>
-      <Field label="Apresentação pública"><textarea name="description" defaultValue={team.description ?? ""} maxLength={2000} rows={4} disabled={saving} /></Field>
+      <fieldset className="lt-team-form-group" disabled={saving}>
+        <legend>Escudo da equipe</legend>
+        <div className="lt-team-upload">
+          <div className="lt-team-upload-preview">
+            {imageUrl ? <img src={imageUrl} alt="Prévia do novo escudo" onError={() => setError("Não foi possível visualizar o arquivo. Escolha outra imagem.")} /> : <MediaImage src={team.logo_url} alt="Escudo atual" />}
+          </div>
+          <div className="lt-team-upload-controls">
+            <Field label="Escolher imagem do PC ou celular"><input ref={fileInput} name="file" type="file" accept="image/png,image/jpeg,image/webp" onChange={chooseFile} aria-describedby="laes-team-shield-help" /></Field>
+            <p className="lt-muted" id="laes-team-shield-help">PNG, JPG ou WEBP de até 5 MB. Prefira uma imagem quadrada e com o escudo centralizado.</p>
+            {file && <Button type="button" secondary onClick={() => {fileInput.current.value = ""; setFile(null); setError("");}}>Remover arquivo escolhido</Button>}
+          </div>
+        </div>
+        <details>
+          <summary>Usar um link de imagem</summary>
+          <Field label="Endereço do escudo"><input name="logo" defaultValue={team.logo_url ?? ""} maxLength={2048} placeholder="https://…" readOnly={!!file} /></Field>
+        </details>
+      </fieldset>
       <div className="lt-actions">
         <Button type="submit" disabled={saving}>{saving ? "Salvando…" : "Salvar página da equipe"}</Button>
-        <Button type="button" secondary disabled={saving} onClick={() => {uploaded.current = null; setError(""); setEditing(false);}}>Cancelar</Button>
+        <Button type="button" secondary disabled={saving} onClick={() => {uploaded.current = null; setFile(null); setError(""); setEditing(false);}}>Cancelar</Button>
       </div>
     </form> : <Button type="button" secondary onClick={() => {setMessage(""); setEditing(true);}}>Editar página da equipe</Button>}
   </section>;
 }
 
-function TeamManager({ teams, requests, run, busy, revision, profileEditor }) {
-  const [teamId, setTeamId] = useState(teams[0]?.id || ""), [slot,setSlot] = useState("titular"), [position,setPosition] = useState(""), [link,setLink] = useState("");
+function TeamManager({ teams, requests, run, busy, revision, profileEditor, initialTeamId }) {
+  const [teamId, setTeamId] = useState(initialTeamId || teams[0]?.id || ""), [slot,setSlot] = useState("titular"), [position,setPosition] = useState(""), [link,setLink] = useState("");
   useEffect(() => {if (!teams.some(t => t.id===teamId)) setTeamId(teams[0]?.id || "");},[teams,teamId]);
   const roster = useLoader(() => teamId ? rpc("roster",{team_id:teamId}) : [], [teamId,revision]);
   const team = teams.find(t => t.id===teamId);
   if (!team) return <Notice>Você ainda não tem uma equipe para gerenciar. Solicite uma capitania e aguarde a aprovação da administração.</Notice>;
   async function generate() {const result=await run("create_link",{team_id:teamId,member_type:slot,role_name:position},"Convite criado. Compartilhe o link com a pessoa escolhida.");if(result?.token)setLink(`${location.origin}/painel?convite=${result.token}`);}
   return <div className="lt-form"><Field label="Equipe que vou gerenciar"><select value={teamId} onChange={e => {setTeamId(e.target.value);setLink("");}}>{teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}</select></Field><Capacity team={team} />
-    {profileEditor && <TeamPublicProfile key={team.id} team={team} {...profileEditor} />}
+    {profileEditor && <TeamPublicProfile key={team.id} team={team} startEditing={team.id === initialTeamId} {...profileEditor} />}
     <div className="lt-panel"><h3>Convide alguém por link</h3><div className="lt-filters"><Field label="Tipo de vaga"><select value={slot} onChange={e=>setSlot(e.target.value)}><option value="titular">Titular</option><option value="reserva">Reserva</option></select></Field><Field label="Posição combinada (opcional)"><input value={position} maxLength={80} onChange={e=>setPosition(e.target.value)} /></Field></div><Button disabled={busy} onClick={generate}>Gerar convite por link</Button><p className="lt-muted">Uso único, válido por sete dias. A pessoa entra com sua própria conta e confirma a participação. A vaga é preenchida quando o convite é aceito.</p>{link && <div className="lt-form"><input aria-label="Link de convite" readOnly value={link} onFocus={e=>e.target.select()} /><Button secondary onClick={async()=>{try{await navigator.clipboard.writeText(link);}catch{}}}>Copiar link</Button></div>}</div>
     <div className="lt-panel"><h3>Pedidos para esta equipe</h3><Requests requests={requests.filter(r=>r.team_id===teamId)} {...{run,busy}} /></div>
     <div className="lt-panel"><h3>Elenco e contato para treinos</h3><Notice error>{roster.error}</Notice>{roster.loading ? <Waiting /> : !roster.data?.length ? <p className="lt-muted">As primeiras vagas estão esperando pelos seus convites.</p> : roster.data.map(m => <article key={m.id} className="lt-request"><div className="lt-row"><h4>{m.nick}</h4><Pill>{SLOT[m.member_type] || m.member_type}{m.is_captain ? " · Capitão" : ""}</Pill></div><Positions games={m.games} /><WhatsApp value={m.whatsapp} />{!m.is_captain && <div className="lt-actions"><Button secondary disabled={busy} onClick={()=>run("change_slot",{id:m.id,member_type:m.member_type==='titular'?'reserva':'titular'},"Tipo de vaga atualizado.")}>Mover para {m.member_type==='titular'?'reserva':'titular'}</Button><Button secondary disabled={busy} onClick={()=>{if(confirm(`Remover ${m.nick} de ${team.name}?`))run("remove_member",{id:m.id},"Integrante removido da equipe.");}}>Remover integrante</Button></div>}</article>)}</div>
@@ -296,17 +344,18 @@ function Community({ data, managed, run, busy, revision }) {
   </>;
 }
 
-function CreateTeam({ data, run, busy }) {
+function CreateTeam({ data, run, busy, onCreated }) {
   const [modality,setModality]=useState(data.modalities[0]?.id || ""),[format,setFormat]=useState("padrao"),[name,setName]=useState("");
   const formats=data.formats.filter(f=>f.modality_id===modality), selected=data.modalities.find(m=>m.id===modality);
   useEffect(()=>setFormat(selected?.slug==='ea-sports-fc'?'pro_clubs':'padrao'),[modality]);
   const preset=formats.find(f=>f.format===format),slug=name.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
-  async function submit(event){event.preventDefault();const formElement=event.currentTarget;const form=new FormData(formElement);const result=await run("create_team",{name,slug,modality_id:modality,format,category:form.get("category"),description:form.get("description")},"Equipe criada com todas as vagas abertas.");if(result){setName("");formElement.reset();}}
-  return <form className="lt-form lt-panel" onSubmit={submit}><p className="lt-eyebrow">Administração da Liga</p><h2>Crie a próxima equipe.</h2><Field label="Nome da equipe"><input value={name} onChange={e=>setName(e.target.value)} required minLength={2} maxLength={80} placeholder="Ex.: LAES Phoenix" /></Field><Field label="Modalidade"><select value={modality} onChange={e=>setModality(e.target.value)}>{data.modalities.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></Field><Field label="Formato do elenco"><select value={format} onChange={e=>setFormat(e.target.value)}>{formats.map(f=><option key={f.format} value={f.format}>{f.label}</option>)}</select></Field>{preset && <Pill>{preset.starter_slots} titulares + {preset.reserve_slots} reservas</Pill>}<Field label="Categoria"><input name="category" maxLength={60} placeholder="Misto, feminino, livre…" /></Field><Field label="Apresentação da equipe"><textarea name="description" rows={3} maxLength={2000} /></Field><p className="lt-muted">Endereço: /equipes/{slug || "nome-da-equipe"}. A capitania será definida após seu aceite de um pedido.</p><Button disabled={busy || !preset}>{busy?'Criando…':'Criar equipe com vagas abertas'}</Button></form>;
+  async function submit(event){event.preventDefault();const formElement=event.currentTarget;const form=new FormData(formElement);const result=await run("create_team",{name,slug,modality_id:modality,format,category:form.get("category"),description:form.get("description")},"Equipe criada com todas as vagas abertas.");if(result?.team_id)onCreated(result.team_id);}
+  return <form className="lt-form lt-panel" onSubmit={submit}><p className="lt-eyebrow">Administração da Liga</p><h2>Crie a próxima equipe.</h2><p>Preencha os dados básicos. Em seguida, você poderá escolher o escudo do seu computador ou celular.</p><Field label="Nome da equipe"><input value={name} onChange={e=>setName(e.target.value)} required minLength={2} maxLength={80} placeholder="Ex.: LAES Phoenix" /></Field><Field label="Modalidade"><select value={modality} onChange={e=>setModality(e.target.value)}>{data.modalities.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></Field><Field label="Formato do elenco"><select aria-describedby="laes-roster-format-help" value={format} onChange={e=>setFormat(e.target.value)}>{formats.map(f=><option key={f.format} value={f.format}>{f.label}</option>)}</select></Field><p className="lt-muted" id="laes-roster-format-help">O formato define quantas vagas ficam disponíveis para titulares e reservas.</p>{preset && <Pill>{preset.starter_slots} titulares + {preset.reserve_slots} reservas</Pill>}<Field label="Categoria"><input name="category" maxLength={60} placeholder="Misto, feminino, livre…" /></Field><Field label="Apresentação da equipe"><textarea name="description" rows={3} maxLength={2000} placeholder="Ex.: Equipe de VALORANT de Alfenas. Treinamos à noite e buscamos jogadores para competir." /></Field><p className="lt-muted">Endereço: /equipes/{slug || "nome-da-equipe"}. A capitania será definida após seu aceite de um pedido.</p><Button disabled={busy || !preset}>{busy?'Criando…':'Criar equipe e configurar escudo'}</Button></form>;
 }
 
 function TeamWorkspace({ adminPage = false, Legacy }) {
   const auth=useAuth(),[tab,setTab]=useState(adminPage?'admin':'teams'),[busy,setBusy]=useState(false),[notice,setNotice]=useState(""),[isError,setError]=useState(false),[revision,setRevision]=useState(0),[token,setToken]=useState(""),[intent,setIntent]=useState(null);
+  const [newTeamId,setNewTeamId]=useState("");
   const data=useLoader(publicData),state=useLoader(async()=>auth.user?{...(await rpc("state")),owner_id:auth.user.id}:null,[auth.user?.id]),requests=useLoader(()=>auth.user?rpc("review_requests"):[],[auth.user?.id]);
   const access=useLoader(async()=>adminPage&&auth.user?{userId:auth.user.id,rows:await loadModalityAccess(auth.user.id)}:null,[adminPage,auth.user?.id]);
   useEffect(()=>{if(!auth.user)return;const timer=setInterval(()=>{state.reload();requests.reload();if(adminPage)access.reload();},15000);return()=>clearInterval(timer);},[auth.user?.id,adminPage]);
@@ -343,14 +392,14 @@ function TeamWorkspace({ adminPage = false, Legacy }) {
   }
   if(adminPage&&!s.is_admin)return <div className="lt-portal"><Section><Notice error>A criação de equipes e a aprovação de capitães são exclusivas da administração da Liga.</Notice><a href="/painel" className="lt-link">Gerenciar minha equipe no painel</a></Section></div>;
   const tabs=adminPage?[['admin','Equipes e capitães'],['access','Pessoas e acessos'],['tournaments','Campeonatos'],['manage','Gerenciar elencos'],['community','Comunidade'],['badges','Insígnias'],['legacy','Conteúdo do portal']]:[['teams','Minhas equipes'],['community','Comunidade'],['profile','Minha ficha'],['legacy','Perfil e atividades']];
-  return <div className="lt-portal"><nav className="lt-tabs" aria-label={adminPage?'Administração da Liga':'Meu portal'}>{tabs.map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>{setTab(id);setNotice('');}}>{label}</button>)}</nav>{tab==='legacy'?<Legacy />:<><PageHero eyebrow={adminPage?'Administração da Liga':'Alfenas joga junto'} title={adminPage?'Organize a próxima formação.':'Sua comunidade. Seu próximo time.'}>{adminPage?'Crie equipes, aprove capitães e acompanhe os elencos da LAES.':'Convites, vagas, posições e contato para transformar uma conexão em equipe.'}</PageHero><Section><Notice error={isError}>{notice}</Notice>
+  return <div className="lt-portal"><nav className="lt-tabs" aria-label={adminPage?'Administração da Liga':'Meu portal'}>{tabs.map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>{setTab(id);setNotice('');setNewTeamId('');}}>{label}</button>)}</nav>{tab==='legacy'?<Legacy />:<><PageHero eyebrow={adminPage?'Administração da Liga':'Alfenas joga junto'} title={adminPage?'Organize a próxima formação.':'Sua comunidade. Seu próximo time.'}>{adminPage?'Crie equipes, aprove capitães e acompanhe os elencos da LAES.':'Convites, vagas, posições e contato para transformar uma conexão em equipe.'}</PageHero><Section><Notice error={isError}>{notice}</Notice>
     {token&&<div className="lt-panel lt-invitation"><h2>Você recebeu um convite.</h2><p className="lt-muted">Ao aceitar, seu nickname, posição e tipo de vaga aparecem no elenco público da equipe. Seu contato continua seguindo a autorização da sua ficha.</p>{linkInfo.data?<><p>{linkInfo.data.team_name} · {SLOT[linkInfo.data.member_type]}{linkInfo.data.role_name?' · '+linkInfo.data.role_name:''}</p><Button disabled={busy} onClick={()=>run('accept_link',{token},'Bem-vindo à equipe! Sua vaga foi confirmada.')}>Aceitar convite e entrar na equipe</Button></>:<Notice error>{linkInfo.error||'Carregando convite…'}</Notice>}<Button secondary onClick={()=>{sessionStorage.removeItem('laes-team-link');setToken('');}}>Dispensar convite</Button></div>}
     {intent&&d.teams.some(t=>t.id===intent.team_id)&&<div className="lt-panel"><h3>Continue seu pedido para {intent.team_name}</h3><Button disabled={busy} onClick={async()=>{const result=await run('request_join',{team_id:intent.team_id,kind:intent.kind,member_type:intent.member_type},'Pedido enviado. Acompanhe a análise neste painel.');if(result){sessionStorage.removeItem('laes-team-intent');setIntent(null);}}}>Confirmar pedido de {intent.kind==='captain'?'capitania':'vaga'}</Button><Button secondary onClick={()=>{sessionStorage.removeItem('laes-team-intent');setIntent(null);}}>Agora não</Button></div>}
-    {tab==='admin'&&<div className="lt-detail-grid"><CreateTeam data={d} {...{run,busy}} /><div className="lt-panel"><h2>Pedidos de capitania</h2><p className="lt-muted">Aprovar um capitão dá acesso somente à equipe solicitada e ocupa a vaga escolhida no elenco.</p><Requests requests={(requests.data||empty).filter(r=>r.kind==='captain')} {...{run,busy}} /><h3 className="lt-space">Capitães aprovados</h3>{d.teams.filter(t=>t.captain_nick).map(t=><div key={t.id} className="lt-request"><strong>{t.name} · {t.captain_nick}</strong><Button secondary disabled={busy} onClick={()=>{if(confirm(`Retirar a capitania de ${t.name}? A pessoa continua no elenco como atleta.`))run('revoke_captain',{team_id:t.id},'Capitania retirada. A pessoa continua no elenco.');}}>Retirar capitania</Button></div>)}</div></div>}
+    {tab==='admin'&&<div className="lt-detail-grid"><CreateTeam data={d} onCreated={id=>{setNewTeamId(id);setTab("manage");}} {...{run,busy}} /><div className="lt-panel"><h2>Pedidos de capitania</h2><p className="lt-muted">Aprovar um capitão dá acesso somente à equipe solicitada e ocupa a vaga escolhida no elenco.</p><Requests requests={(requests.data||empty).filter(r=>r.kind==='captain')} {...{run,busy}} /><h3 className="lt-space">Capitães aprovados</h3>{d.teams.filter(t=>t.captain_nick).map(t=><div key={t.id} className="lt-request"><strong>{t.name} · {t.captain_nick}</strong><Button secondary disabled={busy} onClick={()=>{if(confirm(`Retirar a capitania de ${t.name}? A pessoa continua no elenco como atleta.`))run('revoke_captain',{team_id:t.id},'Capitania retirada. A pessoa continua no elenco.');}}>Retirar capitania</Button></div>)}</div></div>}
     {tab==='access'&&s.is_admin&&<PeopleAccess key={auth.user.id} load={useLoader} modalities={d.modalities} />}
     {tab==='tournaments'&&s.is_admin&&<TournamentWorkspace key={auth.user.id} load={useLoader} modalities={d.modalities} />}
     {tab==='badges'&&<BadgeAdmin />}
-    {tab==='manage'&&<TeamManager teams={managed} requests={requests.data||empty} profileEditor={s.is_admin ? { userId:auth.user.id, onSaved:data.reload } : undefined} {...{run,busy,revision}} />}
+    {tab==='manage'&&<TeamManager teams={managed} requests={requests.data||empty} initialTeamId={newTeamId} profileEditor={s.is_admin ? { userId:auth.user.id, onSaved:data.reload } : undefined} {...{run,busy,revision}} />}
     {tab==='community'&&<Community data={d} {...{managed,run,busy,revision}} />}
     {tab==='profile'&&<ContactEditor key={auth.user.id} contact={s.contact} initialNick={s.nick} games={s.games} data={d} onSaved={()=>{state.reload();setRevision(r=>r+1);}} />}
     {tab==='teams'&&<>
