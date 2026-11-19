@@ -6,7 +6,7 @@ try{
  const p=await browser.newPage({ignoreHTTPSErrors:!!process.env.TEST_IGNORE_TLS,viewport:{width:1365,height:1000}});const errors=[];p.on('pageerror',e=>errors.push(e.message));
  await p.goto(base,{waitUntil:'networkidle'});await p.locator('.phase-one-strip a').first().waitFor();assert.equal(await p.locator('.phase-one-group').first().locator('a').count(),8);
  await p.getByRole('heading',{name:'Equipes em destaque'}).waitFor();assert.equal(await p.locator('a[href^="/equipes/"]').count(),6);
- for(const [path,label] of [['/sobre','Sobre'],['/modalidades','Modalidades'],['/equipes','Equipes'],['/campeonatos','Campeonatos'],['/ao-vivo','Ao vivo'],['/contato','Contato']]){
+ for(const [path,label] of [['/sobre','Sobre'],['/modalidades','Modalidades'],['/equipes','Equipes'],['/campeonatos','Campeonatos'],['/noticias','Notícias'],['/ao-vivo','Ao vivo'],['/contato','Contato']]){
   await p.getByRole('navigation',{name:'Principal',exact:true}).getByRole('link',{name:label,exact:true}).click();await p.waitForURL(base+path);await p.waitForLoadState('networkidle');assert((await p.locator('main').innerText()).length>80,path);
   if(path==='/equipes'){await p.locator('.lt-team-card').first().waitFor();assert.equal(await p.locator('.lt-team-card').count(),6);}
   if(path==='/campeonatos'){await p.locator('.agenda-game').first().waitFor();assert.equal(await p.locator('.agenda-game').count(),8);await p.getByRole('button',{name:/Wild Rift/}).click();assert.equal(await p.locator('.agenda-group').count(),1);}

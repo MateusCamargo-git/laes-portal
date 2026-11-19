@@ -53,12 +53,18 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
  if(!['GET','HEAD'].includes(method))writes.push({table,method,payload:req.postDataJSON()});}
  return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});
  });
- const p=await context.newPage();let errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto(base+'/'+(role==='athlete'?'painel':'admin'),{waitUntil:'networkidle'});await p.getByRole('heading',{name:manager?'Campeonatos':admin?'Crie a próxima equipe.':/Bom te ver/}).first().waitFor();
+ const p=await context.newPage();let errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto(base+'/'+(role==='athlete'?'painel':'admin'),{waitUntil:'networkidle'});await p.getByRole('heading',{name:manager?'Campeonatos':admin?'Administração da LAES':/Bom te ver/}).first().waitFor();
  console.log(admin?'ADMIN':'ATHLETE',(await p.locator('main').innerText()).slice(0,2200));
  const labels=manager?[]:admin?['Gerenciar elencos','Comunidade','Insígnias','Conteúdo do portal']:['Minha equipe','Convites','Atividade','Meu perfil','Configurações'];
- for(const label of labels){const tab=p.getByRole('tab',{name:label,exact:true});const button=p.getByRole('button',{name:label,exact:true});const link=p.getByRole('link',{name:label,exact:true});if(await tab.count()){await tab.first().click();assert.equal(await tab.first().getAttribute('aria-selected'),'true')}else if(await button.count()){await button.first().click()}else if(await link.count()){await link.first().click()}else{throw new Error('Missing internal tab '+label)}await p.waitForTimeout(400);console.log('TAB',label,(await p.locator('main').innerText()).slice(0,180));}
+ for(const label of labels){const tab=p.getByRole('tab',{name:label,exact:true});const button=p.getByRole('button',{name:label,exact:true});const link=(admin?p.getByRole('navigation',{name:'Administração da Liga'}):p).getByRole('link',{name:label,exact:true});if(await tab.count()){await tab.first().click();assert.equal(await tab.first().getAttribute('aria-selected'),'true')}else if(await button.count()){await button.first().click()}else if(await link.count()){await link.first().click()}else{throw new Error('Missing internal tab '+label)}await p.waitForTimeout(400);console.log('TAB',label,(await p.locator('main').innerText()).slice(0,180));}
  if(admin){
-  await p.getByRole('button',{name:'Gerenciar elencos',exact:true}).click();
+  await p.getByRole('navigation',{name:'Administração da Liga'}).getByRole('link',{name:'Conteúdo do portal',exact:true}).waitFor();
+  assert.match(p.url(),/#conteudo$/);
+  await p.reload();
+  await p.getByRole('heading',{name:'Conteúdo do portal',exact:true}).waitFor();
+  await p.goBack();
+  await p.getByRole('heading',{name:'Insígnias',exact:true,level:1}).waitFor();
+  await p.getByRole('navigation',{name:'Administração da Liga'}).getByRole('link',{name:'Gerenciar elencos',exact:true}).click();
   await p.getByRole('button',{name:'Editar página da equipe'}).click();
   await p.getByLabel('Nome da equipe',{exact:true}).fill('Equipe atualizada');
   await p.getByLabel('Escolher imagem do PC ou celular').setInputFiles({name:'escudo.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aBSsAAAAASUVORK5CYII=','base64')});
@@ -72,7 +78,7 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
   assert.equal(team.slug,fixture.teams[0].slug);
   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth),390);
   assert.deepEqual(writes.splice(0).map(write=>[write.table,write.method]),[['escudo','POST'],['teams','PATCH']]);
-  await p.getByRole('button',{name:'Pessoas e acessos',exact:true}).click();
+  await p.getByRole('navigation',{name:'Administração da Liga'}).getByRole('link',{name:'Pessoas e acessos',exact:true}).click();
   await p.getByLabel('Buscar por nickname').fill('QA');
   await p.getByRole('option',{name:/QA LAES/}).waitFor({state:'attached'});
   await p.getByLabel('Conta',{exact:true}).selectOption(uid);
@@ -83,7 +89,7 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
   await p.getByRole('button',{name:'Revogar acesso'}).click();
   await p.getByText('Acesso revogado.').waitFor();
   assert.deepEqual(writes.map(write=>write.method),['POST','DELETE']);
-  await p.getByRole('button',{name:'Equipes e capitães',exact:true}).click();
+  await p.getByRole('navigation',{name:'Administração da Liga'}).getByRole('link',{name:'Equipes e capitães',exact:true}).click();
   await p.getByLabel('Nome da equipe',{exact:true}).fill('Equipe nova QA');
   await p.getByRole('button',{name:'Criar equipe e configurar escudo'}).click();
   await p.getByLabel('Escolher imagem do PC ou celular').waitFor();
@@ -91,7 +97,7 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
  }
  if(manager){
   await p.getByRole('heading',{name:'Campeonatos',exact:true}).waitFor();
-  assert.equal(await p.getByRole('button',{name:'Pessoas e acessos'}).count(),0);
+  assert.equal(await p.getByRole('link',{name:'Pessoas e acessos'}).count(),0);
   await p.getByRole('button',{name:'Novo campeonato'}).click();
   const scope=p.getByLabel('Modalidade',{exact:true});
   assert.equal(await scope.getByRole('option',{name:otherModality.name}).count(),0);
