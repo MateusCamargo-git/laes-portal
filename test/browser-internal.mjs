@@ -55,6 +55,24 @@ const fixture={"teams": [{"id": "00000000-0000-4000-8000-000000000011", "name": 
  });
  const p=await context.newPage();let errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto(base+'/'+(role==='athlete'?'painel':'admin'),{waitUntil:'networkidle'});await p.getByRole('heading',{name:manager?'Campeonatos':admin?'Administração da LAES':/Bom te ver/}).first().waitFor();
  console.log(admin?'ADMIN':'ATHLETE',(await p.locator('main').innerText()).slice(0,2200));
+ if(admin){
+  const layout=p.locator('.lt-admin-layout');
+  const navigation=p.getByRole('navigation',{name:'Administração da Liga'});
+  const cards=p.locator('.lt-admin-task-grid');
+  for(const width of [1365,390]){
+   await p.setViewportSize({width,height:900});
+   assert.equal(await layout.evaluate(el=>getComputedStyle(el).display),'grid');
+   assert.equal(await cards.evaluate(el=>getComputedStyle(el).display),'grid');
+   assert.equal(await navigation.evaluate(el=>getComputedStyle(el).display),width===390?'flex':'grid');
+   const first=await cards.locator('a').first().boundingBox();
+   const second=await cards.locator('a').nth(1).boundingBox();
+   assert(first&&second);
+   if(width===390)assert(second.y>=first.y+first.height);
+   else assert(second.x>=first.x+first.width);
+   assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth),width);
+  }
+ }
+
  const labels=manager?[]:admin?['Gerenciar elencos','Comunidade','Insígnias','Conteúdo do portal']:['Minha equipe','Convites','Atividade','Meu perfil','Configurações'];
  for(const label of labels){const tab=p.getByRole('tab',{name:label,exact:true});const button=p.getByRole('button',{name:label,exact:true});const link=(admin?p.getByRole('navigation',{name:'Administração da Liga'}):p).getByRole('link',{name:label,exact:true});if(await tab.count()){await tab.first().click();assert.equal(await tab.first().getAttribute('aria-selected'),'true')}else if(await button.count()){await button.first().click()}else if(await link.count()){await link.first().click()}else{throw new Error('Missing internal tab '+label)}await p.waitForTimeout(400);console.log('TAB',label,(await p.locator('main').innerText()).slice(0,180));}
  if(admin){
