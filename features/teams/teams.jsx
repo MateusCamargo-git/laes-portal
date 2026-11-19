@@ -6,6 +6,7 @@ export { BadgeCollection } from "../badges/badges.jsx";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { supabase, useAuth, PageHero, Section, MediaImage } from "@laes/runtime";
 
+import { PeopleAccess, TournamentWorkspace, loadModalityAccess } from "../admin/workspace.jsx";
 import { AthleteRegistration } from "./athlete-registration.jsx";
 
 const SLOT = { titular: "Titular", reserva: "Reserva" };
@@ -210,7 +211,8 @@ function CreateTeam({ data, run, busy }) {
 function TeamWorkspace({ adminPage = false, Legacy }) {
   const auth=useAuth(),[tab,setTab]=useState(adminPage?'admin':'teams'),[busy,setBusy]=useState(false),[notice,setNotice]=useState(""),[isError,setError]=useState(false),[revision,setRevision]=useState(0),[token,setToken]=useState(""),[intent,setIntent]=useState(null);
   const data=useLoader(publicData),state=useLoader(async()=>auth.user?{...(await rpc("state")),owner_id:auth.user.id}:null,[auth.user?.id]),requests=useLoader(()=>auth.user?rpc("review_requests"):[],[auth.user?.id]);
-  useEffect(()=>{if(!auth.user)return;const timer=setInterval(()=>{state.reload();requests.reload();},15000);return()=>clearInterval(timer);},[auth.user?.id]);
+  const access=useLoader(async()=>adminPage&&auth.user?{userId:auth.user.id,rows:await loadModalityAccess(auth.user.id)}:null,[adminPage,auth.user?.id]);
+  useEffect(()=>{if(!auth.user)return;const timer=setInterval(()=>{state.reload();requests.reload();if(adminPage)access.reload();},15000);return()=>clearInterval(timer);},[auth.user?.id,adminPage]);
   useEffect(()=>{
     if(!auth.user)return;
     const presence=()=>{void supabase.rpc('community_action',{action:document.visibilityState==='hidden'?'offline':'heartbeat',payload:{}}).then(()=>{},()=>{});};
@@ -233,12 +235,23 @@ function TeamWorkspace({ adminPage = false, Legacy }) {
   if(!auth.user)return <div className="lt-portal"><PageHero title="Sua equipe começa com você." /><Section><div className="lt-panel"><p>Entre na sua conta para pedir uma vaga, acompanhar convites e participar da comunidade.</p><a className="lt-button" href="/entrar">Entrar na conta</a><a className="lt-link" href="/cadastro">Criar minha conta</a></div></Section></div>;
   if(!state.data||state.data.owner_id!==auth.user.id||!data.data)return <div className="lt-portal"><Section><Notice error>{state.error||data.error}</Notice>{!state.error&&!data.error?<Waiting />:<Button secondary onClick={()=>{state.reload();requests.reload();data.reload();}}>Tentar novamente</Button>}</Section></div>;
   const s=state.data,d=data.data,managed=s.is_admin?d.teams:d.teams.filter(t=>s.captain_teams.includes(t.id));
+  if(adminPage&&!s.is_admin&&access.data?.userId!==auth.user.id){
+    return <div className="lt-portal"><Section>{access.error?<><Notice error>{access.error}</Notice><Button secondary onClick={access.reload}>Tentar novamente</Button></>:<Waiting />}</Section></div>;
+  }
+  const scopes=new Set(access.data?.userId===auth.user.id?access.data.rows.map(row=>row.modality_id):[]);
+  if(adminPage&&!s.is_admin&&!access.error&&scopes.size){
+    return <div className="lt-portal"><PageHero eyebrow="Administração da Liga" title="Gestão de modalidade" /><Section>
+      <TournamentWorkspace key={auth.user.id} load={useLoader} modalities={d.modalities.filter(modality=>scopes.has(modality.id))} />
+    </Section></div>;
+  }
   if(adminPage&&!s.is_admin)return <div className="lt-portal"><Section><Notice error>A criação de equipes e a aprovação de capitães são exclusivas da administração da Liga.</Notice><a href="/painel" className="lt-link">Gerenciar minha equipe no painel</a></Section></div>;
-  const tabs=adminPage?[['admin','Equipes e capitães'],['manage','Gerenciar elencos'],['community','Comunidade'],['badges','Insígnias'],['legacy','Conteúdo do portal']]:[['teams','Minhas equipes'],['community','Comunidade'],['profile','Minha ficha'],['legacy','Perfil e atividades']];
+  const tabs=adminPage?[['admin','Equipes e capitães'],['access','Pessoas e acessos'],['tournaments','Campeonatos'],['manage','Gerenciar elencos'],['community','Comunidade'],['badges','Insígnias'],['legacy','Conteúdo do portal']]:[['teams','Minhas equipes'],['community','Comunidade'],['profile','Minha ficha'],['legacy','Perfil e atividades']];
   return <div className="lt-portal"><nav className="lt-tabs" aria-label={adminPage?'Administração da Liga':'Meu portal'}>{tabs.map(([id,label])=><button key={id} type="button" aria-pressed={tab===id} onClick={()=>{setTab(id);setNotice('');}}>{label}</button>)}</nav>{tab==='legacy'?<Legacy />:<><PageHero eyebrow={adminPage?'Administração da Liga':'Alfenas joga junto'} title={adminPage?'Organize a próxima formação.':'Sua comunidade. Seu próximo time.'}>{adminPage?'Crie equipes, aprove capitães e acompanhe os elencos da LAES.':'Convites, vagas, posições e contato para transformar uma conexão em equipe.'}</PageHero><Section><Notice error={isError}>{notice}</Notice>
     {token&&<div className="lt-panel lt-invitation"><h2>Você recebeu um convite.</h2><p className="lt-muted">Ao aceitar, seu nickname, posição e tipo de vaga aparecem no elenco público da equipe. Seu contato continua seguindo a autorização da sua ficha.</p>{linkInfo.data?<><p>{linkInfo.data.team_name} · {SLOT[linkInfo.data.member_type]}{linkInfo.data.role_name?' · '+linkInfo.data.role_name:''}</p><Button disabled={busy} onClick={()=>run('accept_link',{token},'Bem-vindo à equipe! Sua vaga foi confirmada.')}>Aceitar convite e entrar na equipe</Button></>:<Notice error>{linkInfo.error||'Carregando convite…'}</Notice>}<Button secondary onClick={()=>{sessionStorage.removeItem('laes-team-link');setToken('');}}>Dispensar convite</Button></div>}
     {intent&&d.teams.some(t=>t.id===intent.team_id)&&<div className="lt-panel"><h3>Continue seu pedido para {intent.team_name}</h3><Button disabled={busy} onClick={async()=>{const result=await run('request_join',{team_id:intent.team_id,kind:intent.kind,member_type:intent.member_type},'Pedido enviado. Acompanhe a análise neste painel.');if(result){sessionStorage.removeItem('laes-team-intent');setIntent(null);}}}>Confirmar pedido de {intent.kind==='captain'?'capitania':'vaga'}</Button><Button secondary onClick={()=>{sessionStorage.removeItem('laes-team-intent');setIntent(null);}}>Agora não</Button></div>}
     {tab==='admin'&&<div className="lt-detail-grid"><CreateTeam data={d} {...{run,busy}} /><div className="lt-panel"><h2>Pedidos de capitania</h2><p className="lt-muted">Aprovar um capitão dá acesso somente à equipe solicitada e ocupa a vaga escolhida no elenco.</p><Requests requests={(requests.data||empty).filter(r=>r.kind==='captain')} {...{run,busy}} /><h3 className="lt-space">Capitães aprovados</h3>{d.teams.filter(t=>t.captain_nick).map(t=><div key={t.id} className="lt-request"><strong>{t.name} · {t.captain_nick}</strong><Button secondary disabled={busy} onClick={()=>{if(confirm(`Retirar a capitania de ${t.name}? A pessoa continua no elenco como atleta.`))run('revoke_captain',{team_id:t.id},'Capitania retirada. A pessoa continua no elenco.');}}>Retirar capitania</Button></div>)}</div></div>}
+    {tab==='access'&&s.is_admin&&<PeopleAccess key={auth.user.id} load={useLoader} modalities={d.modalities} />}
+    {tab==='tournaments'&&s.is_admin&&<TournamentWorkspace key={auth.user.id} load={useLoader} modalities={d.modalities} />}
     {tab==='badges'&&<BadgeAdmin />}
     {tab==='manage'&&<TeamManager teams={managed} requests={requests.data||empty} {...{run,busy,revision}} />}
     {tab==='community'&&<Community data={d} {...{managed,run,busy,revision}} />}

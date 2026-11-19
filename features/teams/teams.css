@@ -15,3 +15,18 @@
 .lt-team-card .lt-card-members{margin-bottom:20px}
 .lt-team-card .lt-capacity{margin-top:auto}
 .lt-team-card .lt-card-body>.lt-link{align-self:flex-start}
+
+.lt-admin-workspace { display: grid; gap: 18px; }
+.lt-admin-workspace .lt-panel { min-width: 0; }
+.lt-admin-workspace input, .lt-admin-workspace select, .lt-admin-workspace textarea { min-width: 0; min-height: 44px; }
+.lt-admin-workspace form[hidden] { display: none; }
+.lt-admin-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 12px 0; }
+fieldset.lt-admin-fields { min-width: 0; border: 0; padding: 0; }
+.lt-admin-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.lt-admin-row > div { min-width: 0; overflow-wrap: anywhere; }
+.lt-admin-workspace .lt-button { min-height: 44px; }
+.lt-admin-preview { overflow-wrap: anywhere; }
+@media (max-width: 620px) {
+  .lt-admin-fields { grid-template-columns: minmax(0, 1fr); }
+  .lt-admin-row > .lt-button { width: 100%; }
+}
