@@ -29,7 +29,7 @@ try {
   await page.route(`https://${project}.supabase.co/**`, async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    const send = (json, status = 200) => route.fulfill({ json, status });
+    const send = (json, status = 200) => route.fulfill({ json, status, headers: { 'X-Supabase-Api-Version': '2024-01-01' } });
     if (path === '/auth/v1/user') {
       if (request.method() === 'PUT') {
         const payload = request.postDataJSON();
