@@ -29,7 +29,7 @@ try {
   await page.route(`https://${project}.supabase.co/**`, async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
-    const send = (json, status = 200) => route.fulfill({ json, status, headers: { 'X-Supabase-Api-Version': '2024-01-01' } });
+    const send = (json, status = 200) => route.fulfill({ json, status });
     if (path === '/auth/v1/user') {
       if (request.method() === 'PUT') {
         const payload = request.postDataJSON();
@@ -49,9 +49,9 @@ try {
     if (path === '/auth/v1/signup') {
       signups++;
       assert.equal(request.postDataJSON().email, email);
-      return send({ code: 'over_email_send_rate_limit' }, 429);
+      return send({ error_code: 'over_email_send_rate_limit', msg: 'Email rate limit exceeded' }, 429);
     }
-    if (path === '/auth/v1/recover') return send({ code: 'over_email_send_rate_limit' }, 429);
+    if (path === '/auth/v1/recover') return send({ error_code: 'over_email_send_rate_limit', msg: 'Email rate limit exceeded' }, 429);
     return send((request.headers().accept || '').includes('vnd.pgrst.object') ? null : []);
   });
 
@@ -94,7 +94,7 @@ try {
   await page.getByLabel('Confirme sua senha').fill(password);
   await page.locator('[name=account_notice]').check();
   await page.getByRole('button', { name: 'Cadastrar', exact: true }).click();
-  await page.getByText('O envio de e-mails atingiu o limite temporário.', { exact: false }).waitFor();
+  assert.equal(await page.getByRole('status').innerText(), 'O envio de e-mails atingiu o limite temporário. Aguarde antes de tentar de novo. Se já usa o Google, você pode entrar por ele.');
   assert.equal(signups, 1);
 
   await page.goto(base + '/recuperar-senha');
