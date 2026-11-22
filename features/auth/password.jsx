@@ -14,10 +14,10 @@ export function component() {
     async function checkLink() {
       let failed;
       try {
-        const { error } = await supabase.auth.initialize();
+        await supabase.auth.initialize();
         const query = new URLSearchParams(window.location.search);
         const hash = new URLSearchParams(window.location.hash.slice(1));
-        failed = Boolean(error || query.has('code') || query.has('error') || hash.has('error'));
+        failed = query.has('code') || query.has('error') || hash.has('error') || hash.has('access_token');
       } catch {
         failed = true;
       }

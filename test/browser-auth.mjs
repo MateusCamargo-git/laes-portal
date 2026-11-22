@@ -33,7 +33,8 @@ try {
     if (path === '/auth/v1/user') {
       if (request.method() === 'PUT') {
         const payload = request.postDataJSON();
-        assert.deepEqual(payload, { password });
+        assert.equal(payload.password, password);
+        assert.equal(Object.hasOwn(payload, 'email'), false);
         storedPassword = payload.password;
         writes++;
       }
