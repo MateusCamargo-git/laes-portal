@@ -13,6 +13,7 @@ cpSync('node_modules/tslib','.output/server/node_modules/tslib',{recursive:true}
 
 // Editable feature sources compile against the SAME React/backend instances as the portal.
 for(const [entry,browserFile,serverFile] of [
+ ['features/auth/password.jsx','redefinir-senha-CE7gxZYl-badge-art-v2.js','redefinir-senha-CrOkOitt.mjs'],
  ['features/teams/teams.jsx','laes-team-feature-athlete-20261112-v2-badge-art-v2.js','laes-team-feature-20261111-v1.mjs'],
  ['features/live/live.jsx','laes-live-feature-20261112-badge-art-v2.js','laes-live-feature-20261112.mjs'],
  ['features/navigation/header.jsx','laes-site-header-20261117.js','laes-site-header-20261117.mjs'],

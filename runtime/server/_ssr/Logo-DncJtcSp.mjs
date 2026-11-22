@@ -56,7 +56,7 @@ function AuthProvider({ children }) {
 	(0, import_react.useEffect)(() => {
 		supabase.auth.getUser().then(({ data }) => load(data.user ?? null)).catch(() => load(null));
 		const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-			if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+			if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED" && event !== "PASSWORD_RECOVERY") return;
 			setTimeout(() => load(session?.user ?? null), 0);
 		});
 		return () => {

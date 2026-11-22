@@ -18,6 +18,17 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - name: Testar fluxos de autenticação no navegador
+        run: |
+          PORT=3023 node .output/server/index.mjs &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in {1..20}; do
+            if curl -fsS http://127.0.0.1:3023/auth -o /dev/null; then break; fi
+            sleep 1
+          done
+          node test/browser-auth.mjs
       - uses: actions/upload-artifact@v4
         with:
           name: laes-nitro-build

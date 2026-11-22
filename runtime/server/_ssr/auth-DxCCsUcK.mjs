@@ -40,10 +40,17 @@ function Auth({
   (0, import_react.useEffect)(() => {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const query = new URLSearchParams(window.location.search);
-    if (params.has("error") || query.has("error")) {
-      setNotice("O acesso com Google não foi concluído. Tente novamente ou entre com e-mail e senha.");
-      window.history.replaceState(null, "", window.location.pathname);
-    }
+    if (!params.has("error") && !query.has("error") && !query.has("code")) return;
+    let active = true;
+    supabase.auth.initialize().then(({ error }) => {
+      if (!active) return;
+      const remaining = new URLSearchParams(window.location.search);
+      if (error || params.has("error") || query.has("error") || remaining.has("code")) {
+        setNotice("Não foi possível concluir o acesso. Tente novamente. Se veio por um link de e-mail, abra no mesmo navegador em que solicitou.");
+        window.history.replaceState(window.history.state, "", window.location.pathname);
+      }
+    });
+    return () => { active = false; };
   }, []);
   async function googleLogin() {
     setBusy(true);
@@ -124,7 +131,7 @@ function Auth({
         if (error) throw error;
         if (data.session) await navigate({
           to: "/painel"
-        });else setNotice("Confira seu e-mail para confirmar o cadastro. Cadastrar-se não garante vaga em equipe.");
+        });else setNotice("Confira seu e-mail para confirmar o cadastro. Se você já tem conta pelo Google, use o botão do Google e defina a senha em Configurações.");
       } else {
         const {
           error
@@ -134,8 +141,16 @@ function Auth({
         });
         if (error) throw error;
       }
-    } catch {
-      setNotice(mode === "login" ? "Não foi possível entrar. Confira os dados e a confirmação do e-mail." : "Não foi possível concluir. Tente novamente em alguns instantes.");
+    } catch (error) {
+      if (error?.code === "over_email_send_rate_limit") {
+        setNotice("O envio de e-mails atingiu o limite temporário. Aguarde antes de tentar de novo. Se já usa o Google, você pode entrar por ele.");
+      } else if (error?.code === "email_not_confirmed") {
+        setNotice("Confirme o cadastro pelo link recebido no e-mail. Confira também o spam.");
+      } else if (error?.code === "invalid_credentials") {
+        setNotice("Confira o e-mail e a senha. Se você se cadastrou com o Google, entre pelo Google e defina uma senha em Configurações.");
+      } else {
+        setNotice(mode === "login" ? "Não foi possível entrar. Tente novamente em alguns instantes." : "Não foi possível concluir. Tente novamente em alguns instantes.");
+      }
     } finally {
       setBusy(false);
     }
