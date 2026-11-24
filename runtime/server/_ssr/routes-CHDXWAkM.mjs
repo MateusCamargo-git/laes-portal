@@ -1,3 +1,4 @@
+import {laesTournamentStatus} from "./Logo-DncJtcSp.mjs";
 import { r as tournamentsQuery } from "./catalog-ew-rK_t4.mjs";
 import {LiveSection} from "./laes-live-feature-20261112.mjs";
 import { r as __toESM } from "../_runtime.mjs";
@@ -131,7 +132,7 @@ function CommunityNumbers() {
 		},
 		{
 			value: agenda.data?.length,
-			label: "Campeonatos na agenda",
+			label: "Campeonatos com inscrições abertas",
 			icon: Trophy
 		}
 	];
@@ -287,7 +288,7 @@ function CommunityNumbers() {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 								className: "mt-6 max-w-3xl text-xs leading-relaxed text-[#625D51]",
-								children: "Atletas = contas cadastradas no portal. Cada pessoa conta uma vez no total e uma vez em cada modalidade adicionada ao seu perfil; a soma das barras pode superar o total. Equipes e parceiros ativos; campeonatos publicados na agenda, incluindo torneios externos. Os dados do antigo Forms não entram nesses contadores."
+								children: "Atletas = contas cadastradas no portal. Cada pessoa conta uma vez no total e uma vez em cada modalidade adicionada ao seu perfil; a soma das barras pode superar o total. Equipes e parceiros ativos; campeonatos com inscrições abertas, incluindo torneios externos. Os dados do antigo Forms não entram nesses contadores."
 							})
 						]
 					})
@@ -419,17 +420,12 @@ function Index() {
 	const tournaments = useQuery({
 		queryKey: ["tournaments", "upcoming"],
 		queryFn: async () => {
-			const { data, error } = await supabase.from("tournaments").select("*, modalities(name)").eq("published", true).in("status", [
-				"em_breve",
-				"inscricoes_abertas",
-				"inscricoes_encerradas",
-				"em_andamento"
-			]).order("starts_at", {
+			const { data, error } = await supabase.from("tournaments").select("*, modalities(name)").eq("published", true).eq("status", "inscricoes_abertas").order("starts_at", {
 				ascending: true,
 				nullsFirst: false
-			}).limit(4);
+			});
 			if (error) throw error;
-			return data;
+			return data.filter(tournament => laesTournamentStatus(tournament) === "inscricoes_abertas").slice(0, 4);
 		}
 	});
 	const news = useQuery({
@@ -541,12 +537,12 @@ function Index() {
 			className: "grid gap-14 lg:grid-cols-2",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionTitle, {
 				eyebrow: "Agenda",
-				title: "Próximos campeonatos"
+				title: "Campeonatos com inscrições abertas"
 			}), tournaments.data?.length ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "grid gap-3",
 				children: tournaments.data.map((t) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TournamentCard, { t }, t.id))
 			}) : !tournaments.isLoading && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Empty, {
-				title: "Nenhum campeonato agendado",
+				title: "Nenhum campeonato com inscrições abertas",
 				children: "Assim que houver novidades, a agenda aparece aqui."
 			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SectionTitle, {
 				eyebrow: "Notícias",

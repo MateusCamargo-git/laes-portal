@@ -1,3 +1,4 @@
+import {laesTournamentStatus} from "./Logo-DncJtcSp.mjs";
 import { r as supabase } from "./backend-mB6vbMUi.mjs";
 import { t as queryOptions } from "../_libs/tanstack__react-query.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/catalog-ew-rK_t4.js
@@ -12,9 +13,9 @@ var teamsQuery = queryOptions({
 var tournamentsQuery = queryOptions({
 	queryKey: ["tournaments"],
 	queryFn: async () => {
-		const { data, error } = await supabase.from("tournaments").select("*,modalities(name)").eq("published", true).in("status", ["em_breve","inscricoes_abertas","inscricoes_encerradas","em_andamento"]).order("starts_at", { ascending: false });
+		const { data, error } = await supabase.from("tournaments").select("*,modalities(name)").eq("published", true).eq("status", "inscricoes_abertas").order("starts_at", { ascending: false });
 		if (error) throw error;
-		return data;
+		return data.filter(tournament => laesTournamentStatus(tournament) === "inscricoes_abertas");
 	}
 });
 var newsQuery = queryOptions({

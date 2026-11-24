@@ -1,3 +1,4 @@
+import {laesTournamentStatus} from "./Logo-DncJtcSp.mjs";
 import { r as supabase } from "./backend-mB6vbMUi.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
@@ -17,14 +18,14 @@ function ModalityPage() {
 			const [teams, openings, tournaments, news] = await Promise.all([
 				supabase.from("teams").select("*, modalities(name,slug)").eq("modality_id", m.id).eq("active", true).order("sort"),
 				supabase.from("openings").select("*, teams!inner(name,slug,modality_id)").eq("teams.modality_id", m.id).eq("is_open", true),
-				supabase.from("tournaments").select("*, modalities(name)").eq("modality_id", m.id).eq("published", true).order("starts_at", { ascending: false }).limit(6),
+				supabase.from("tournaments").select("*, modalities(name)").eq("modality_id", m.id).eq("published", true).eq("status", "inscricoes_abertas").order("starts_at", { ascending: false }),
 				supabase.from("news").select("*").eq("modality_id", m.id).eq("published", true).order("published_at", { ascending: false }).limit(3)
 			]);
 			return {
 				m,
 				teams: teams.data ?? [],
 				openings: openings.data ?? [],
-				tournaments: tournaments.data ?? [],
+				tournaments: (tournaments.data ?? []).filter(tournament => laesTournamentStatus(tournament) === "inscricoes_abertas").slice(0, 6),
 				news: news.data ?? []
 			};
 		}
