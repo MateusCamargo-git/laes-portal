@@ -1,4 +1,4 @@
-import {laesTournamentStatus} from "./Logo-DncJtcSp.mjs";
+import {laesPublicTournament} from "./Logo-DncJtcSp.mjs";
 import { r as tournamentsQuery } from "./catalog-ew-rK_t4.mjs";
 import {LiveSection} from "./laes-live-feature-20261112.mjs";
 import { r as __toESM } from "../_runtime.mjs";
@@ -425,7 +425,7 @@ function Index() {
 				nullsFirst: false
 			});
 			if (error) throw error;
-			return data.filter(tournament => laesTournamentStatus(tournament) === "inscricoes_abertas").slice(0, 4);
+			return data.filter(laesPublicTournament).slice(0, 4);
 		}
 	});
 	const news = useQuery({

@@ -1,4 +1,4 @@
-import {laesTournamentDate, laesTournamentStatus} from "./Logo-DncJtcSp.mjs";
+import {laesTournamentDate, laesPublicTournament} from "./Logo-DncJtcSp.mjs";
 import { r as supabase } from "./backend-mB6vbMUi.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";
@@ -13,7 +13,7 @@ function Tournament() {
 		queryFn: async () => {
 			const t = await supabase.from("tournaments").select("*,modalities(name)").eq("id", id).eq("published", true).maybeSingle();
 			if (t.error) throw t.error;
-			if (!t.data || laesTournamentStatus(t.data) !== "inscricoes_abertas") return null;
+			if (!t.data || !laesPublicTournament(t.data)) return null;
 			const teams = await supabase.from("tournament_teams").select("teams(*,modalities(name,slug))").eq("tournament_id", id);
 			if (teams.error) throw teams.error;
 			return {

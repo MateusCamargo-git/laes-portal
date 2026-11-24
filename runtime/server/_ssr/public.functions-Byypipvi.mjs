@@ -1,4 +1,4 @@
-import {laesTournamentStatus} from "./Logo-DncJtcSp.mjs";
+import {laesPublicTournament} from "./Logo-DncJtcSp.mjs";
 import { t as createPublicBackendClient } from "./backend-mB6vbMUi.mjs";
 import { t as publicAthleteSchema } from "./public-athlete-BaNoIfuf.mjs";
 import { a as TSS_SERVER_FUNCTION, l as createServerFn } from "./createServerFn-DDDJMFWM.mjs";
@@ -51,8 +51,8 @@ var getPublicMeta = createServerFn({ method: "GET" }).inputValidator((d) => {
 			} : null;
 		}
 		if (data.kind === "tournament") {
-			const { data: r } = await sb.from("tournaments").select("name,organizer,logo_url,status,registration_deadline").eq("id", data.key).eq("published", true).maybeSingle();
-			return r && laesTournamentStatus(r) === "inscricoes_abertas" ? {
+			const { data: r } = await sb.from("tournaments").select("id,name,organizer,logo_url,status,registration_deadline").eq("id", data.key).eq("published", true).maybeSingle();
+			return r && laesPublicTournament(r) ? {
 				title: r.name,
 				description: `Campeonato${r.organizer ? ` organizado por ${r.organizer}` : ""}.`,
 				image: await publicImage(sb, r.logo_url)

@@ -1,4 +1,4 @@
-import {laesTournamentStatus} from "./Logo-DncJtcSp.mjs";
+import {laesPublicTournament} from "./Logo-DncJtcSp.mjs";
 import { r as supabase } from "./backend-mB6vbMUi.mjs";
 import { p as require_jsx_runtime } from "../_libs/@radix-ui/react-avatar+[...].mjs";
 import { b as Link } from "../_libs/@tanstack/react-router+[...].mjs";
@@ -25,7 +25,7 @@ function ModalityPage() {
 				m,
 				teams: teams.data ?? [],
 				openings: openings.data ?? [],
-				tournaments: (tournaments.data ?? []).filter(tournament => laesTournamentStatus(tournament) === "inscricoes_abertas").slice(0, 6),
+				tournaments: (tournaments.data ?? []).filter(laesPublicTournament).slice(0, 6),
 				news: news.data ?? []
 			};
 		}

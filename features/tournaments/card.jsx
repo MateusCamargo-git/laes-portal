@@ -10,6 +10,18 @@ function laesTournamentStatus(t) {
  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  return /^\d{4}-\d{2}-\d{2}$/.test(deadline)&&deadline<today?'inscricoes_encerradas':status;
 }
+// Portal records marked open in the Eventos tab of Acompanhamento do Liga - LAES.xlsx.
+const spreadsheetOpenTournamentIds = new Set([
+ 'c51cdb47-68e8-42df-9212-59ddee487d02', // Star Challenge — Free Fire
+ 'bff40dde-f3ee-4a31-8247-26712f799da4', // CS2 Express — Counter-Strike 2
+ '3c035623-586c-4d97-ba22-2d0b6c3e7d62', // Evolution Primordiais Den — League of Legends
+ '17aa2b17-ac54-460c-a21c-30cd24887215', // Evolution Primordiais Den — Valorant
+ '7a6092ce-7f83-4e2f-a72a-502e70cae72d', // Aizen Verse — Wild Rift
+]);
+function laesPublicTournament(tournament) {
+ return spreadsheetOpenTournamentIds.has(tournament.id)
+  && laesTournamentStatus(tournament) === 'inscricoes_abertas';
+}
 function TournamentCard({t}) {
  const status=laesTournamentStatus(t),labels={em_breve:'Em breve',inscricoes_abertas:'Inscrições abertas',inscricoes_encerradas:'Inscrições encerradas',em_andamento:'Em andamento',encerrado:'Encerrado',cancelado:'Cancelado'};
  const deadline=t.until_full?'Até esgotarem as vagas':t.registration_deadline?laesTournamentDate(t.registration_deadline):'Prazo a confirmar';
@@ -23,3 +35,5 @@ function TournamentCard({t}) {
   <footer><span>{t.is_laes?'Uma competição da nossa Liga.':'Datas e vagas sujeitas à confirmação.'}</span><a href={url}>Ver detalhes e regulamento <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a></footer>
  </article>;
 }
+
+export { laesPublicTournament };
